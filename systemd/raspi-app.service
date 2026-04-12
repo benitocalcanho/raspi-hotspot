@@ -1,0 +1,24 @@
+[Unit]
+Description=Raspi Hotspot — Flask Application
+After=network.target raspi-hotspot.service
+Wants=raspi-hotspot.service
+
+[Service]
+Type=simple
+User=pi
+WorkingDirectory=/home/pi/raspi-hotspot/backend
+EnvironmentFile=/home/pi/raspi-hotspot/config/.env
+ExecStart=/home/pi/raspi-hotspot/.venv/bin/gunicorn \
+    --workers 2 \
+    --bind 0.0.0.0:5000 \
+    --timeout 60 \
+    --access-logfile /home/pi/raspi-hotspot/logs/access.log \
+    --error-logfile /home/pi/raspi-hotspot/logs/error.log \
+    "app:create_app()"
+Restart=on-failure
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

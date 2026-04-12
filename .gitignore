@@ -1,0 +1,60 @@
+__pycache__/
+*.py[cod]
+*.pyc
+*.pyo
+.Python
+env/
+venv/
+.venv/
+ENV/
+
+# Distribution / packaging
+build/
+dist/
+*.egg-info/
+*.egg
+
+# Database files (never commit real data)
+*.db
+*.sqlite
+*.sqlite3
+instance/
+
+# Environment secrets
+.env
+.env.local
+config/.env
+
+# Node / Vue
+node_modules/
+frontend/dist/
+frontend/.vite/
+
+# IDE
+.vscode/settings.json
+.idea/
+*.swp
+*.swo
+*~
+
+# Logs
+logs/
+*.log
+
+# ngrok config with auth token
+ngrok.yml
+config/ngrok.yml
+
+# Google credentials (never commit)
+credentials.json
+token.json
+config/credentials.json
+config/token.json
+
+# Tailscale keys
+*.key
+*.pem
+
+# Temporary
+tmp/
+temp/

@@ -1,0 +1,87 @@
+<template>
+  <div>
+    <div v-if="showAdd" class="add-form">
+      <h4>Configure New Pin</h4>
+      <input v-model.number="newPin.pin_number" type="number" placeholder="BCM pin (2–27)" min="2" max="27" />
+      <input v-model="newPin.label" placeholder="Label (e.g. LED)" />
+      <select v-model="newPin.direction">
+        <option value="output">Output</option>
+        <option value="input">Input</option>
+      </select>
+      <button @click="addPin" class="btn-green">Add Pin</button>
+      <p v-if="addError" class="error">{{ addError }}</p>
+    </div>
+
+    <div v-if="gpioStore.pins.length" class="pin-grid">
+      <div v-for="pin in gpioStore.pins" :key="pin.pin_number" class="pin-card">
+        <div class="pin-header">
+          <span class="label">{{ pin.label || `BCM${pin.pin_number}` }}</span>
+          <span class="bcm">BCM {{ pin.pin_number }}</span>
+        </div>
+        <div class="pin-body">
+          <span :class="['state', pin.state ? 'on' : 'off']">
+            {{ pin.state ? 'ON' : 'OFF' }}
+          </span>
+          <button
+            v-if="pin.direction === 'output'"
+            @click="gpioStore.togglePin(pin.pin_number)"
+            :class="['toggle-btn', pin.state ? 'on' : 'off']"
+          >
+            Toggle
+          </button>
+          <span v-else class="direction-badge">INPUT</span>
+        </div>
+        <div v-if="showAdd" class="pin-footer">
+          <button @click="gpioStore.deletePin(pin.pin_number)" class="btn-danger-sm">Remove</button>
+        </div>
+      </div>
+    </div>
+    <p v-else class="empty">No GPIO pins configured.</p>
+  </div>
+</template>
+
+<script setup>
+import { ref, onMounted } from 'vue'
+import { useGpioStore } from '../stores/gpio.js'
+
+const props = defineProps({ showAdd: { type: Boolean, default: false } })
+const gpioStore = useGpioStore()
+const addError = ref('')
+const newPin = ref({ pin_number: null, label: '', direction: 'output' })
+
+onMounted(() => gpioStore.fetchPins())
+
+async function addPin() {
+  addError.value = ''
+  try {
+    await gpioStore.addPin(newPin.value.pin_number, newPin.value.label, newPin.value.direction)
+    newPin.value = { pin_number: null, label: '', direction: 'output' }
+  } catch (e) {
+    addError.value = e.response?.data?.error || 'Failed to add pin.'
+  }
+}
+</script>
+
+<style scoped>
+.add-form { background: #f8f9fa; border-radius: 8px; padding: 1rem; margin-bottom: 1rem; display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: flex-end; }
+h4 { width: 100%; margin: 0; font-size: 0.9rem; color: #555; }
+.add-form input, .add-form select { padding: 0.45rem 0.7rem; border: 1px solid #ddd; border-radius: 5px; font-size: 0.9rem; }
+.btn-green { padding: 0.45rem 0.9rem; background: #27ae60; color: white; border: none; border-radius: 5px; cursor: pointer; }
+.pin-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 1rem; }
+.pin-card { background: white; border-radius: 10px; padding: 1rem; box-shadow: 0 2px 8px rgba(0,0,0,0.07); }
+.pin-header { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 0.75rem; }
+.label { font-weight: 700; font-size: 0.95rem; }
+.bcm { font-size: 0.75rem; color: #aaa; }
+.pin-body { display: flex; align-items: center; justify-content: space-between; }
+.state { font-size: 0.85rem; font-weight: 700; padding: 0.2rem 0.5rem; border-radius: 20px; }
+.state.on { background: #e8fde8; color: #27ae60; }
+.state.off { background: #f0f0f0; color: #888; }
+.toggle-btn { padding: 0.3rem 0.7rem; border: none; border-radius: 5px; cursor: pointer; font-size: 0.8rem; }
+.toggle-btn.on { background: #e8fde8; color: #27ae60; }
+.toggle-btn.off { background: #f0f0f0; color: #555; }
+.direction-badge { font-size: 0.75rem; color: #2980b9; background: #e8f4fd; padding: 0.2rem 0.5rem; border-radius: 20px; }
+.pin-footer { margin-top: 0.75rem; text-align: right; }
+.btn-danger-sm { padding: 0.2rem 0.6rem; background: #fde8e8; color: #c0392b; border: none; border-radius: 4px; cursor: pointer; font-size: 0.78rem; }
+.empty { color: #888; }
+.error { color: #e74c3c; font-size: 0.85rem; }
+</style>
