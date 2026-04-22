@@ -1,7 +1,6 @@
 [Unit]
 Description=Raspi Hotspot — Flask Application
-After=network.target raspi-hotspot.service
-Wants=raspi-hotspot.service
+After=network.target
 
 [Service]
 Type=simple

@@ -2,6 +2,7 @@
 User model — stores credentials and role information.
 """
 from datetime import datetime, timezone
+import re
 import bcrypt
 from models import db
 
@@ -23,6 +24,12 @@ class User(db.Model):
 
     audit_logs = db.relationship("AuditLog", backref="user", lazy="dynamic", cascade="all, delete-orphan")
 
+    @staticmethod
+    def build_internal_email(username: str) -> str:
+        """Generate a deterministic internal email placeholder from a username."""
+        normalized = re.sub(r"[^a-z0-9._-]", "_", username.strip().lower())
+        return f"{normalized}@local.user"
+
     def set_password(self, raw_password: str) -> None:
         if len(raw_password) < 8:
             raise ValueError("Password must be at least 8 characters.")
@@ -35,8 +42,8 @@ class User(db.Model):
             raw_password.encode("utf-8"), self.password_hash.encode("utf-8")
         )
 
-    def to_dict(self, include_email: bool = True) -> dict:
-        data = {
+    def to_dict(self) -> dict:
+        return {
             "id": self.id,
             "username": self.username,
             "role": self.role,
@@ -44,9 +51,6 @@ class User(db.Model):
             "created_at": self.created_at.isoformat(),
             "created_by": self.created_by,
         }
-        if include_email:
-            data["email"] = self.email
-        return data
 
     def __repr__(self):
         return f"<User {self.username} [{self.role}]>"

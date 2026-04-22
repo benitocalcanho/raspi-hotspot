@@ -1,5 +1,5 @@
 [Unit]
-Description=Raspi Hotspot — WiFi Access Point (uap0)
+Description=Raspi Hotspot — WiFi Access Point
 After=network.target
 Before=raspi-app.service
 
@@ -8,10 +8,7 @@ Type=oneshot
 RemainAfterExit=yes
 EnvironmentFile=/home/pi/raspi-hotspot/config/.env
 ExecStart=/usr/local/bin/raspi-hotspot-up
-ExecStop=/bin/bash -c "\
-    pkill -f 'hostapd /etc/hostapd/hostapd.conf' || true; \
-    pkill -f 'raspi-dnsmasq.pid' || true; \
-    iw dev uap0 del 2>/dev/null || true"
+ExecStop=/usr/local/bin/raspi-hotspot-down
 
 [Install]
 WantedBy=multi-user.target

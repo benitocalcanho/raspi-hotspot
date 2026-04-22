@@ -2,6 +2,8 @@
 GPIO service — wraps gpiozero for safe use on Pi 3.
 On non-Pi systems, gpiozero's MockFactory is used automatically.
 """
+from __future__ import annotations
+
 import os
 from typing import Optional
 from models import db

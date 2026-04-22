@@ -36,9 +36,7 @@ class Config:
     CORS_ORIGINS: list = ["*"]
 
     # ── Admin bootstrap ──────────────────────────────────────
-    ADMIN_USERNAME: str = os.getenv("ADMIN_USERNAME", "admin")
-    ADMIN_PASSWORD: str = os.environ["ADMIN_PASSWORD"]
-    ADMIN_EMAIL: str = os.getenv("ADMIN_EMAIL", "admin@localhost")
+    # All operational secrets (admin/cleaner credentials, WiFi, SMTP, etc.) are now managed via the dashboard and loaded from the database at runtime.
 
     # ── Hotspot ──────────────────────────────────────────────
     HOTSPOT_SSID: str = os.getenv("HOTSPOT_SSID", "RaspiSetup")
@@ -52,21 +50,45 @@ class Config:
     NGROK_AUTHTOKEN: str = os.getenv("NGROK_AUTHTOKEN", "")
     NGROK_STATIC_DOMAIN: str = os.getenv("NGROK_STATIC_DOMAIN", "")
 
-    # ── Google Calendar ──────────────────────────────────────
-    GOOGLE_CREDENTIALS_FILE: str = os.getenv("GOOGLE_CREDENTIALS_FILE", "")
-    GOOGLE_TOKEN_FILE: str = os.getenv("GOOGLE_TOKEN_FILE", "")
-    GOOGLE_CALENDAR_ID: str = os.getenv("GOOGLE_CALENDAR_ID", "primary")
-    CALENDAR_USER_CREATION_KEYWORD: str = os.getenv(
-        "CALENDAR_USER_CREATION_KEYWORD", "CREATE_USER"
-    )
+    # ── iCal Calendar ────────────────────────────────────────
+    ICAL_URL: str = os.getenv("ICAL_URL", "")
+    ICAL_GUEST_PASSWORD: str = os.getenv("ICAL_GUEST_PASSWORD", "")
+    # Guest rotation schedule (HH:MM, 24h)
+    CHECKOUT_TIME: str = os.getenv("CHECKOUT_TIME", "12:00")  # guests lose access
+    CHECKIN_TIME: str = os.getenv("CHECKIN_TIME", "14:00")    # new guest account created
+    CALENDAR_GUEST_DEFAULT_PASSWORD: str = os.getenv("CALENDAR_GUEST_DEFAULT_PASSWORD", "guest12345")
+    CALENDAR_SYNC_ENABLED: bool = os.getenv("CALENDAR_SYNC_ENABLED", "true").strip().lower() in ("1", "true", "yes", "on")
     CALENDAR_SYNC_INTERVAL: int = int(os.getenv("CALENDAR_SYNC_INTERVAL", "300"))
 
     # ── GPIO ─────────────────────────────────────────────────
     GPIO_MODE: str = os.getenv("GPIO_MODE", "gpiozero")
+    ENABLE_GPIO: bool = os.getenv("ENABLE_GPIO", "false").strip().lower() in (
+        "1",
+        "true",
+        "yes",
+        "on",
+    )
 
     # ── Tailscale ────────────────────────────────────────────
     TAILSCALE_SUBNET: str = os.getenv("TAILSCALE_SUBNET", "100.64.0.0/10")
+    ADMIN_REQUIRE_TAILSCALE: bool = os.getenv(
+        "ADMIN_REQUIRE_TAILSCALE",
+        "false",
+    ).strip().lower() in (
+        "1",
+        "true",
+        "yes",
+        "on",
+    )
 
     # ── Application ──────────────────────────────────────────
     APP_HOST: str = os.getenv("APP_HOST", "0.0.0.0")
     APP_PORT: int = int(os.getenv("APP_PORT", "5000"))
+
+    # ── Email/SMTP ────────────────────────────────────────────
+    SMTP_HOST: str = os.getenv("SMTP_HOST", "")
+    SMTP_PORT: int = int(os.getenv("SMTP_PORT", "587"))
+    SMTP_USER: str = os.getenv("SMTP_USER", "")
+    SMTP_PASS: str = os.getenv("SMTP_PASS", "")
+    EMAIL_SENDER: str = os.getenv("EMAIL_SENDER", "")
+    EMAIL_RECIPIENT: str = os.getenv("EMAIL_RECIPIENT", "")

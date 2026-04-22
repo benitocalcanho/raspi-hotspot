@@ -1,11 +1,23 @@
-# Installation Guide — Raspberry Pi 3
+# Installation Guide — Raspberry Pi 3 / Pi 2 B
+
+This guide focuses on the core application stack:
+- user management
+- Google Calendar sync
+- admin access over Tailscale
+- user access over ngrok
+
+The hotspot setup script is optional and not required for the main deployment path.
+
+Dependency files:
+- `backend/requirements.txt` = core dependencies (good for local PC dev)
+- `backend/requirements-pi.txt` = core + Raspberry Pi GPIO dependencies
 
 ## Prerequisites
 
-- Raspberry Pi 3 Model B or B+
+- Raspberry Pi 3 Model B/B+ OR Raspberry Pi 2 B
 - MicroSD card (16 GB minimum, Class 10 recommended)
 - Raspberry Pi OS Lite (Bookworm / 64-bit or Bullseye / 32-bit)
-- Internet access (Ethernet or USB WiFi dongle) for the initial install
+- Internet access on the Pi (Ethernet or WiFi)
 
 ---
 
@@ -38,9 +50,6 @@ Run each script in order:
 ```bash
 # System dependencies, Python venv, directory setup
 sudo bash scripts/01-setup-pi.sh
-
-# Configure the virtual AP interface (uap0) for first-boot hotspot
-sudo bash scripts/02-setup-hotspot.sh
 
 # Install Tailscale (for admin remote access)
 sudo bash scripts/03-setup-tailscale.sh
@@ -85,21 +94,32 @@ sudo bash scripts/05-setup-services.sh
 This:
 - Builds the Vue 3 frontend (`npm run build`)
 - Installs systemd service units
-- Starts the hotspot and Flask app
+- Starts the Flask app
 
 ---
 
-## Step 6 — First Boot Access
+## Step 6 — Access the App
 
-1. On your phone or laptop, connect to WiFi: **RaspiSetup** (password: `raspisetup123`)
-2. Open browser: `http://192.168.50.1:5000`
-3. Go to **WiFi Setup** — scan and connect to your home WiFi
-4. The Pi connects and saves credentials persistently
-
-After connecting, access the app:
-- **Local network**: `http://raspi-hotspot.local:5000`
+After the app starts, access it using one of these paths:
+- **Local network**: `http://<pi-ip>:5000`
 - **Admin (anywhere)**: Via Tailscale IP `http://100.x.x.x:5000`
 - **Users (anywhere)**: Via ngrok URL shown in Admin Dashboard
+
+Log in with the bootstrap admin credentials from `config/.env`, then:
+- create users manually in the admin dashboard, or
+- configure Google Calendar sync and trigger a sync
+
+---
+
+## Optional — Hotspot Flow
+
+The hotspot setup is not part of the main app deployment anymore. If you later want to revisit it, the script still exists:
+
+```bash
+sudo bash scripts/02-setup-hotspot.sh
+```
+
+For Raspberry Pi 2 B, this requires a USB WiFi dongle with AP mode support.
 
 ---
 
@@ -109,7 +129,7 @@ After connecting, access the app:
 cd /home/pi/raspi-hotspot
 git pull
 source .venv/bin/activate
-pip install -r backend/requirements.txt
+pip install -r backend/requirements-pi.txt
 cd frontend && npm install && npm run build
 sudo systemctl restart raspi-app
 ```

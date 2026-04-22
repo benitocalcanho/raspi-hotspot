@@ -7,7 +7,7 @@ from flask_jwt_extended import jwt_required, get_jwt_identity, get_jwt
 
 from services import gpio_service
 from services.audit_service import log_event
-from utils.decorators import require_roles, tailscale_required
+from utils.decorators import require_roles
 
 gpio_bp = Blueprint("gpio", __name__)
 
@@ -22,7 +22,6 @@ def list_pins():
 @gpio_bp.route("/pins", methods=["POST"])
 @jwt_required()
 @require_roles("admin")
-@tailscale_required
 def add_pin():
     data = request.get_json(silent=True) or {}
     pin_number = data.get("pin_number")
@@ -55,6 +54,9 @@ def get_pin(pin_number):
 @gpio_bp.route("/pins/<int:pin_number>/toggle", methods=["POST"])
 @jwt_required()
 def toggle_pin(pin_number):
+    from flask import request
+    from models.user import User
+    from services.email_service import send_notification_email
     claims = get_jwt()
     role = claims.get("role")
     user_id = int(get_jwt_identity())
@@ -67,6 +69,19 @@ def toggle_pin(pin_number):
     except ValueError as exc:
         return jsonify({"error": str(exc)}), 400
 
+    # Gather details for email
+    user = User.query.get(user_id)
+    device = request.headers.get("User-Agent", "Unknown")
+    button_label = getattr(pin, "label", f"Pin {pin_number}")
+    action = "Unlocked" if pin.state else "Locked"
+    subject = f"[Raspi Hotspot] {action} by {user.username}"
+    body = f"User: {user.username}\nRole: {user.role}\nButton: {button_label}\nPin: {pin_number}\nAction: {action}\nDevice: {device}"
+    try:
+        send_notification_email(subject, body)
+    except Exception as e:
+        # Log but do not block the action
+        print(f"[Email] Failed to send notification: {e}")
+
     log_event("gpio_toggle", user_id=user_id, detail={"pin": pin_number, "new_state": pin.state})
     return jsonify(pin.to_dict()), 200
 
@@ -74,7 +89,6 @@ def toggle_pin(pin_number):
 @gpio_bp.route("/pins/<int:pin_number>", methods=["DELETE"])
 @jwt_required()
 @require_roles("admin")
-@tailscale_required
 def delete_pin(pin_number):
     try:
         gpio_service.delete_pin(pin_number)

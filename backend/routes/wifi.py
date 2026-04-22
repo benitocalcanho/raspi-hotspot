@@ -8,7 +8,7 @@ from flask_jwt_extended import jwt_required
 
 from services import wifi_service
 from services.audit_service import log_event
-from utils.decorators import require_roles, tailscale_required
+from utils.decorators import require_roles
 
 wifi_bp = Blueprint("wifi", __name__)
 
@@ -53,7 +53,6 @@ def connect():
 @wifi_bp.route("/hotspot/stop", methods=["POST"])
 @jwt_required()
 @require_roles("admin")
-@tailscale_required
 def stop_hotspot():
     """Admin can tear down the hotspot once the Pi is connected."""
     result = wifi_service.stop_hotspot()

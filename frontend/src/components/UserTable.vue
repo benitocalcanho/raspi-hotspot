@@ -4,7 +4,6 @@
       <thead>
         <tr>
           <th>Username</th>
-          <th>Email</th>
           <th>Role</th>
           <th>Status</th>
           <th>Created</th>
@@ -15,7 +14,6 @@
       <tbody>
         <tr v-for="user in users" :key="user.id">
           <td>{{ user.username }}</td>
-          <td>{{ user.email }}</td>
           <td><span :class="['badge', user.role]">{{ user.role }}</span></td>
           <td>
             <span :class="['badge', user.is_active ? 'active' : 'inactive']">
@@ -28,6 +26,8 @@
             <button @click="toggleActive(user)" class="btn-act">
               {{ user.is_active ? 'Suspend' : 'Activate' }}
             </button>
+            <button @click="renameUser(user)" class="btn-act">Rename</button>
+            <button @click="setPassword(user)" class="btn-act">Password</button>
             <button @click="deleteUser(user)" class="btn-act danger">Delete</button>
           </td>
         </tr>
@@ -52,6 +52,32 @@ async function toggleActive(user) {
   emit('refresh')
 }
 
+async function renameUser(user) {
+  const newUsername = prompt('New username:', user.username)
+  if (newUsername === null) return
+  const username = newUsername.trim()
+  if (!username || username === user.username) return
+  try {
+    await api.patch(`/admin/users/${user.id}`, { username })
+    emit('refresh')
+  } catch (e) {
+    alert(e.response?.data?.error || 'Failed to rename user.')
+  }
+}
+
+async function setPassword(user) {
+  const newPassword = prompt(`Set new password for ${user.username}:`)
+  if (newPassword === null) return
+  const password = newPassword.trim()
+  if (!password) return
+  try {
+    await api.patch(`/admin/users/${user.id}`, { password })
+    emit('refresh')
+  } catch (e) {
+    alert(e.response?.data?.error || 'Failed to update password.')
+  }
+}
+
 async function deleteUser(user) {
   if (!confirm(`Delete user "${user.username}"? This cannot be undone.`)) return
   await api.delete(`/admin/users/${user.id}`)
@@ -67,6 +93,8 @@ th { background: #f8f9fa; font-weight: 600; color: #555; }
 .badge { padding: 0.2rem 0.6rem; border-radius: 20px; font-size: 0.75rem; font-weight: 600; }
 .badge.admin { background: #fde8e8; color: #c0392b; }
 .badge.user { background: #e8f4fd; color: #2980b9; }
+.badge.cleaner { background: #fef3e8; color: #e67e22; }
+.badge.guest { background: #f0e8fd; color: #8e44ad; }
 .badge.active { background: #e8fde8; color: #27ae60; }
 .badge.inactive { background: #fafafa; color: #888; }
 .actions { display: flex; gap: 0.4rem; }

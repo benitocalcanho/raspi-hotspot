@@ -11,6 +11,7 @@ from flask_jwt_extended import (
 )
 
 from models.user import User
+from models import db
 from services.audit_service import log_event
 
 auth_bp = Blueprint("auth", __name__)
@@ -19,13 +20,14 @@ auth_bp = Blueprint("auth", __name__)
 @auth_bp.route("/login", methods=["POST"])
 def login():
     data = request.get_json(silent=True) or {}
-    username = data.get("username", "").strip()
+    username = data.get("username", "").strip().lower()
     password = data.get("password", "")
 
     if not username or not password:
         return jsonify({"error": "Username and password are required."}), 400
 
-    user = User.query.filter_by(username=username).first()
+    # Case-insensitive username lookup
+    user = User.query.filter(db.func.lower(User.username) == username).first()
 
     if not user or not user.is_active or not user.check_password(password):
         # Log failed attempt (user_id may be None if username not found)

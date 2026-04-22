@@ -1,27 +1,26 @@
 <template>
   <div class="login-page">
     <div class="login-card">
+
       <h1>Raspi Hotspot</h1>
-      <p class="subtitle">Sign in to continue</p>
+      <p class="subtitle">{{ $t('welcome') }}</p>
 
       <form @submit.prevent="handleLogin">
         <div class="field">
-          <label>Username</label>
+          <label>{{ $t('username') }}</label>
           <input v-model="username" type="text" autocomplete="username" required />
         </div>
         <div class="field">
-          <label>Password</label>
+          <label>{{ $t('password') }}</label>
           <input v-model="password" type="password" autocomplete="current-password" required />
         </div>
 
         <p v-if="error" class="error">{{ error }}</p>
 
         <button type="submit" :disabled="loading">
-          {{ loading ? 'Signing in…' : 'Sign In' }}
+          {{ loading ? $t('signing_in') : $t('sign_in') }}
         </button>
       </form>
-
-      <a href="/wifi-setup" class="setup-link">First time? Set up WiFi →</a>
     </div>
   </div>
 </template>
@@ -44,7 +43,13 @@ async function handleLogin() {
   loading.value = true
   try {
     const user = await authStore.login(username.value, password.value)
-    router.push(user.role === 'admin' ? '/admin' : '/dashboard')
+    if (user.role === 'admin') {
+      router.push('/admin')
+    } else if (['cleaner', 'guest', 'user'].includes(user.role)) {
+      router.push('/guest')
+    } else {
+      router.push('/dashboard')
+    }
   } catch (e) {
     error.value = e.response?.data?.error || 'Login failed. Please try again.'
   } finally {
@@ -86,5 +91,4 @@ button {
 button:hover:not(:disabled) { background: #16213e; }
 button:disabled { opacity: 0.6; cursor: not-allowed; }
 .error { color: #e74c3c; font-size: 0.88rem; margin-bottom: 0.5rem; }
-.setup-link { display: block; text-align: center; margin-top: 1.2rem; color: #0f3460; font-size: 0.9rem; }
 </style>

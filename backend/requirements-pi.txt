@@ -1,0 +1,4 @@
+-r requirements.txt
+
+# Raspberry Pi hardware GPIO support
+gpiozero==2.0

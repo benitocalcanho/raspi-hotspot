@@ -1,6 +1,7 @@
 """
 AuditLog model — records every authentication and sensitive event.
 """
+import json
 from datetime import datetime, timezone
 from models import db
 
@@ -17,11 +18,18 @@ class AuditLog(db.Model):
     timestamp = db.Column(
         db.DateTime,
         nullable=False,
-        default=lambda: datetime.now(timezone.utc),
+        default=lambda: datetime.now(timezone.utc),  # UTC
         index=True,
     )
 
     def to_dict(self) -> dict:
+        parsed_detail = None
+        if self.detail:
+            try:
+                parsed_detail = json.loads(self.detail)
+            except (TypeError, ValueError):
+                parsed_detail = {"raw": self.detail}
+
         return {
             "id": self.id,
             "user_id": self.user_id,
@@ -29,7 +37,7 @@ class AuditLog(db.Model):
             "event": self.event,
             "ip_address": self.ip_address,
             "user_agent": self.user_agent,
-            "detail": self.detail,
+            "detail": parsed_detail,
             "timestamp": self.timestamp.isoformat(),
         }
 

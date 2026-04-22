@@ -1,7 +1,8 @@
 <template>
   <div id="app">
-    <NavBar v-if="authStore.isLoggedIn" />
-    <main class="main-content">
+    <!-- Language switcher removed: now auto-detects browser language -->
+    <NavBar v-if="authStore.isLoggedIn && authStore.user?.role !== 'guest'" />
+    <main :class="['main-content', authStore.user?.role === 'guest' ? 'guest' : '']">
       <router-view />
     </main>
   </div>
@@ -30,4 +31,5 @@ body {
   color: #2c3e50;
 }
 .main-content { padding: 1.5rem; max-width: 1100px; margin: 0 auto; }
+.main-content.guest { padding: 0; max-width: 100%; }
 </style>

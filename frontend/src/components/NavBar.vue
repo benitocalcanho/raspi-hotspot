@@ -3,8 +3,10 @@
     <div class="brand">Raspi Hotspot</div>
     <div class="links">
       <router-link v-if="authStore.user?.role === 'admin'" to="/admin">Admin</router-link>
-      <router-link to="/dashboard">Dashboard</router-link>
-      <router-link to="/gpio">GPIO</router-link>
+      <router-link v-if="authStore.user?.role === 'cleaner'" to="/cleaner">Cleaner</router-link>
+      <router-link v-if="authStore.user?.role === 'guest'" to="/guest">Guest</router-link>
+      <router-link v-if="authStore.user?.role === 'user'" to="/dashboard">Dashboard</router-link>
+      <router-link v-if="authStore.user?.role === 'admin' || authStore.user?.role === 'cleaner'" to="/gpio">GPIO</router-link>
       <button @click="handleLogout" class="logout">Sign Out</button>
     </div>
   </nav>

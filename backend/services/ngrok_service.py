@@ -8,6 +8,7 @@ Architecture:
 """
 import threading
 import logging
+from typing import Optional
 from flask import current_app
 
 logger = logging.getLogger(__name__)
@@ -16,7 +17,7 @@ _tunnel = None
 _tunnel_lock = threading.Lock()
 
 
-def start_tunnel(port: int = 5000) -> str | None:
+def start_tunnel(port: int = 5000) -> Optional[str]:
     """
     Start (or return existing) ngrok HTTPS tunnel to Flask.
     Returns the public URL or None on failure.
@@ -66,7 +67,7 @@ def stop_tunnel() -> None:
                 _tunnel = None
 
 
-def get_public_url() -> str | None:
+def get_public_url() -> Optional[str]:
     """Return the active public URL without starting a new tunnel."""
     if _tunnel is not None:
         return _tunnel.public_url

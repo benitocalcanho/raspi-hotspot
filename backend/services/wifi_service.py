@@ -1,18 +1,17 @@
 """
-WiFi / hotspot management service for Raspberry Pi 3.
+WiFi / hotspot management service.
 
-Strategy for Pi 3 (single Broadcom WiFi chip):
-  - A virtual AP interface 'uap0' is cloned from wlan0.
-  - uap0 runs hostapd (access point) + dnsmasq (DHCP).
-  - wlan0 connects to the target network via NetworkManager / wpa_supplicant.
-  - Both can run simultaneously on the Broadcom BCM43438 chip.
+Supported setups:
+    - Raspberry Pi 3 onboard WiFi (prefers virtual AP interface uap0)
+    - Raspberry Pi 2 + USB WiFi dongle (falls back to physical AP interface)
 
 All shell commands are run with subprocess with explicit argument lists
 (no shell=True) to prevent command injection.
 """
+from __future__ import annotations
+
 import subprocess
-import json
-import re
+import os
 from pathlib import Path
 
 
@@ -35,6 +34,46 @@ def _validate_passphrase(passphrase: str) -> str:
     return passphrase
 
 
+def _wifi_interface() -> str:
+    """Best-effort detection of the current WiFi interface name."""
+    forced_iface = os.getenv("WIFI_IFACE", "").strip()
+    if forced_iface:
+        link = _run(["ip", "link", "show", forced_iface], check=False)
+        if link.returncode == 0:
+            return forced_iface
+
+    # Prefer active WiFi interfaces known by NetworkManager.
+    result = _run(["nmcli", "-t", "-f", "DEVICE,TYPE,STATE", "dev", "status"], check=False)
+    wifi_lines = []
+    for line in result.stdout.strip().splitlines():
+        parts = line.split(":")
+        if len(parts) >= 3 and parts[1] == "wifi":
+            wifi_lines.append(parts)
+
+    for parts in wifi_lines:
+        if parts[2] == "connected":
+            return parts[0]
+    if wifi_lines:
+        return wifi_lines[0][0]
+
+    # Fallback to iw output if nmcli data is unavailable.
+    iw_result = _run(["iw", "dev"], check=False)
+    for raw in iw_result.stdout.strip().splitlines():
+        line = raw.strip()
+        if line.startswith("Interface "):
+            return line.split()[1]
+
+    return "wlan0"
+
+
+def _ap_supported() -> bool:
+    result = _run(["iw", "list"], check=False)
+    for raw in result.stdout.splitlines():
+        if raw.strip() == "* AP":
+            return True
+    return False
+
+
 # ── Hotspot control ───────────────────────────────────────────────────────────
 
 def start_hotspot(ssid: str, passphrase: str, hotspot_ip: str) -> dict:
@@ -45,14 +84,29 @@ def start_hotspot(ssid: str, passphrase: str, hotspot_ip: str) -> dict:
     _validate_ssid(ssid)
     _validate_passphrase(passphrase)
 
-    # 1. Create virtual AP interface if not present
-    _run(["sudo", "iw", "dev", "wlan0", "interface", "add", "uap0", "type", "__ap"], check=False)
-    _run(["sudo", "ip", "link", "set", "uap0", "up"])
-    _run(["sudo", "ip", "addr", "add", f"{hotspot_ip}/24", "dev", "uap0"], check=False)
+    if not _ap_supported():
+        raise RuntimeError("This WiFi adapter does not support AP mode.")
+
+    wifi_iface = _wifi_interface()
+    ap_iface = wifi_iface
+
+    # Prefer Pi 3 style: virtual AP interface. Fallback to physical interface.
+    add_virtual = _run(
+        ["sudo", "iw", "dev", wifi_iface, "interface", "add", "uap0", "type", "__ap"],
+        check=False,
+    )
+    if add_virtual.returncode == 0:
+        ap_iface = "uap0"
+    else:
+        _run(["sudo", "nmcli", "dev", "disconnect", wifi_iface], check=False)
+
+    _run(["sudo", "ip", "link", "set", ap_iface, "up"])
+    _run(["sudo", "ip", "addr", "flush", "dev", ap_iface], check=False)
+    _run(["sudo", "ip", "addr", "add", f"{hotspot_ip}/24", "dev", ap_iface], check=False)
 
     # 2. Write a minimal hostapd config to a temp file
     hostapd_conf = (
-        f"interface=uap0\n"
+        f"interface={ap_iface}\n"
         f"driver=nl80211\n"
         f"ssid={ssid}\n"
         f"hw_mode=g\n"
@@ -75,16 +129,23 @@ def start_hotspot(ssid: str, passphrase: str, hotspot_ip: str) -> dict:
     _run(["sudo", "hostapd", "-B", str(hostapd_conf_path)])
 
     # 4. Start dnsmasq for this interface only
-    _run([
+    subprocess.Popen([
         "sudo", "dnsmasq",
-        "--interface=uap0",
+        f"--interface={ap_iface}",
         "--bind-interfaces",
         "--dhcp-range=192.168.50.10,192.168.50.50,12h",
-        f"--address=/#/{hotspot_ip}",   # Captive-portal redirect
-        "--no-daemon", "--pid-file=/tmp/raspi_dnsmasq.pid",
-    ], check=False)
+        f"--address=/#/{hotspot_ip}",
+        "--pid-file=/tmp/raspi_dnsmasq.pid",
+        "--keep-in-foreground",
+    ])
 
-    return {"status": "hotspot_started", "ssid": ssid, "ip": hotspot_ip}
+    return {
+        "status": "hotspot_started",
+        "ssid": ssid,
+        "ip": hotspot_ip,
+        "wifi_iface": wifi_iface,
+        "ap_iface": ap_iface,
+    }
 
 
 def stop_hotspot() -> dict:
@@ -132,27 +193,30 @@ def connect_to_network(ssid: str, passphrase: str) -> dict:
     _validate_ssid(ssid)
     _validate_passphrase(passphrase)
 
+    wifi_iface = _wifi_interface()
+
     result = _run([
         "sudo", "nmcli", "dev", "wifi", "connect", ssid,
         "password", passphrase,
-        "ifname", "wlan0",
+        "ifname", wifi_iface,
     ], check=False)
 
     if result.returncode != 0:
         return {"status": "error", "message": result.stderr.strip()}
 
-    return {"status": "connected", "ssid": ssid}
+    return {"status": "connected", "ssid": ssid, "device": wifi_iface}
 
 
 def get_connection_status() -> dict:
-    """Return the current wlan0 connection status."""
+    """Return the current WiFi connection status."""
+    wifi_iface = _wifi_interface()
     result = _run(["nmcli", "-t", "-f", "DEVICE,STATE,CONNECTION", "dev", "status"], check=False)
     for line in result.stdout.strip().splitlines():
         parts = line.split(":")
-        if parts[0] == "wlan0":
+        if parts[0] == wifi_iface:
             return {
                 "device": parts[0],
                 "state": parts[1] if len(parts) > 1 else "unknown",
                 "connection": parts[2] if len(parts) > 2 else "",
             }
-    return {"device": "wlan0", "state": "unknown", "connection": ""}
+    return {"device": wifi_iface, "state": "unknown", "connection": ""}

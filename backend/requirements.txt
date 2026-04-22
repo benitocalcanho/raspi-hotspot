@@ -6,16 +6,13 @@ SQLAlchemy==2.0.30
 bcrypt==4.1.3
 python-dotenv==1.0.1
 
-# Google Calendar
-google-auth==2.29.0
-google-auth-oauthlib==1.2.0
-google-api-python-client==2.127.0
+
 
 # ngrok tunnel management
 pyngrok==7.2.0
 
-# GPIO (gpiozero works on Pi; mock pins work anywhere)
-gpiozero==2.0.1
+# GPIO is intentionally NOT pinned here.
+# For Raspberry Pi deployment, install backend/requirements-pi.txt instead.
 
 # Networking / IP utilities
 requests==2.31.0

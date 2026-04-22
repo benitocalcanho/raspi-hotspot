@@ -1,3 +1,3 @@
-from utils.decorators import require_roles, tailscale_required
+from utils.decorators import require_roles
 
-__all__ = ["require_roles", "tailscale_required"]
+__all__ = ["require_roles"]

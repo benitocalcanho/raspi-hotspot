@@ -2,11 +2,11 @@
 Calendar sync routes — admin can manually trigger a sync or view sync status.
 """
 from flask import Blueprint, jsonify
-from flask_jwt_extended import jwt_required, get_jwt_identity, current_app
+from flask_jwt_extended import jwt_required, get_jwt_identity
 
 from services.calendar_service import sync_calendar
 from services.audit_service import log_event
-from utils.decorators import require_roles, tailscale_required
+from utils.decorators import require_roles
 
 calendar_bp = Blueprint("calendar", __name__)
 
@@ -14,7 +14,6 @@ calendar_bp = Blueprint("calendar", __name__)
 @calendar_bp.route("/sync", methods=["POST"])
 @jwt_required()
 @require_roles("admin")
-@tailscale_required
 def trigger_sync():
     """Manually trigger a Google Calendar sync."""
     from flask import current_app as app

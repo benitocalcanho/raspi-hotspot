@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # =============================================================================
-# 01-setup-pi.sh — Initial Raspberry Pi 3 system preparation
+# 01-setup-pi.sh — Initial Raspberry Pi 3 / Pi 2 B system preparation
 # Run once as root / sudo bash scripts/01-setup-pi.sh
 # =============================================================================
 set -euo pipefail
@@ -34,7 +34,7 @@ sudo -u pi python3 -m venv "${INSTALL_DIR}/.venv"
 sudo -u pi "${INSTALL_DIR}/.venv/bin/pip" install --upgrade pip
 
 echo "==> Installing Python dependencies..."
-sudo -u pi "${INSTALL_DIR}/.venv/bin/pip" install -r "${INSTALL_DIR}/backend/requirements.txt"
+sudo -u pi "${INSTALL_DIR}/.venv/bin/pip" install -r "${INSTALL_DIR}/backend/requirements-pi.txt"
 
 echo "==> Creating data directory for SQLite..."
 mkdir -p "${INSTALL_DIR}/backend/data"
