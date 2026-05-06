@@ -20,10 +20,9 @@ dist/
 *.sqlite3
 instance/
 
-# Environment secrets
+# Environment secrets — only ignore personal overrides, not the default .env
 .env
 .env.local
-config/.env
 
 # Node / Vue
 node_modules/
