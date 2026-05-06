@@ -65,6 +65,7 @@ def create_app(config_class=Config):
     # Create DB tables and seed admin user on first run
     with app.app_context():
         db.create_all()       # creates settings table first
+        _migrate_add_valid_until(app)  # must run before any ORM queries
         _load_db_settings(app)
         _seed_admin(app)
         _seed_cleaner(app)
@@ -165,8 +166,9 @@ def _seed_admin(app):
 
 def _seed_cleaner(app):
     """Create the cleaner account if it doesn't exist."""
-    cfg = app.config
-    existing = User.query.filter_by(username=cfg["CLEANER_USERNAME"]).first()
+    cleaner_username = os.getenv("CLEANER_USERNAME", "cleaner")
+    cleaner_password = os.getenv("CLEANER_PASSWORD", "cleaner12345")
+    existing = User.query.filter_by(username=cleaner_username).first()
     if existing:
         changed = False
         if existing.role != "cleaner":
@@ -181,13 +183,13 @@ def _seed_cleaner(app):
         return
 
     cleaner = User(
-        username=cfg["CLEANER_USERNAME"],
-        email=User.build_internal_email(cfg["CLEANER_USERNAME"]),
+        username=cleaner_username,
+        email=User.build_internal_email(cleaner_username),
         role="cleaner",
         created_by="manual",
     )
     try:
-        cleaner.set_password(cfg["CLEANER_PASSWORD"])
+        cleaner.set_password(cleaner_password)
         db.session.add(cleaner)
         db.session.commit()
         app.logger.info("Cleaner account created.")
@@ -205,6 +207,18 @@ def _migrate_calendar_users_to_guest(app):
     if updated:
         db.session.commit()
         app.logger.info("Migrated %d calendar user(s) to guest role.", updated)
+
+
+def _migrate_add_valid_until(app):
+    """Add valid_until column to users table if it doesn't exist (SQLite migration)."""
+    from sqlalchemy import inspect, text
+    with app.app_context():
+        inspector = inspect(db.engine)
+        columns = [c["name"] for c in inspector.get_columns("users")]
+        if "valid_until" not in columns:
+            db.session.execute(text("ALTER TABLE users ADD COLUMN valid_until DATE"))
+            db.session.commit()
+            app.logger.info("Migration: added valid_until column to users table.")
 
 
 if __name__ == "__main__":
