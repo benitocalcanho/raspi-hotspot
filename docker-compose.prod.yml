@@ -2,32 +2,46 @@
 #  docker-compose.prod.yml — Production deployment
 #
 #  Pulls the pre-built image from GitHub Container Registry.
-#  No Docker build tools or Node.js needed on the Pi.
+#  No Docker build tools, Node.js, or config files needed.
 #
-#  Desktop / no GPIO:
+#  Install with one command:
 #    docker compose -f docker-compose.prod.yml up -d
 #
 #  Raspberry Pi (with GPIO):
 #    docker compose -f docker-compose.prod.yml -f docker-compose.pi.yml up -d
 #
-#  First run:
-#    cp config/.env.example config/.env
-#    nano config/.env   # set SECRET_KEY, JWT_SECRET_KEY, ADMIN_PASSWORD
+#  Default login: admin / admin12345
+#  All secrets (ngrok, SMTP, iCal) are configured in the Admin Dashboard.
 # ============================================================
 
 services:
   app:
     # Pre-built multi-arch image from GitHub Container Registry.
     # Supports: linux/amd64 (desktop), linux/arm64 (Pi 4/5), linux/arm/v7 (Pi 2/3)
-    # Replace OWNER with your GitHub username or organisation.
     image: ghcr.io/benitocalcanho/raspi-hotspot:latest
 
-    # Read all secrets from config/.env — never bake secrets into the image
-    env_file:
-      - ./config/.env
+    environment:
+      FLASK_ENV: production
+      SECRET_KEY: raspi-hotspot-default-secret-key-change-me
+      JWT_SECRET_KEY: raspi-hotspot-default-jwt-key-change-me
+      DATABASE_URL: sqlite:///data/raspi.db
+      ADMIN_USERNAME: admin
+      ADMIN_PASSWORD: admin12345
+      CLEANER_USERNAME: cleaner
+      CLEANER_PASSWORD: cleaner12345
+      CALENDAR_GUEST_DEFAULT_PASSWORD: guest12345
+      APP_PORT: 5000
+      APP_HOST: 0.0.0.0
+      GPIO_MODE: mock
+      ENABLE_GPIO: "false"
+      CALENDAR_SYNC_ENABLED: "true"
+      CALENDAR_SYNC_INTERVAL: "300"
+      CHECKOUT_TIME: "12:00"
+      CHECKIN_TIME: "14:00"
+      TAILSCALE_SUBNET: 100.64.0.0/10
+      ADMIN_REQUIRE_TAILSCALE: "false"
 
     ports:
-      # Host port : Container port
       - "5000:5000"
 
     volumes:
@@ -42,7 +56,6 @@ services:
     container_name: raspi-hotspot
 
 # ── Named volumes ─────────────────────────────────────────────────────────────
-# Docker manages these on the host file system automatically.
 volumes:
   raspi_data:
   raspi_uploads:
