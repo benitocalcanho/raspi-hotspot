@@ -32,7 +32,8 @@ services:
 
     volumes:
       # SQLite database — persists across container restarts and image updates
-      - raspi_data:/app/backend/data
+      # Flask-SQLAlchemy 3.x resolves sqlite:///data/raspi.db relative to instance_path
+      - raspi_data:/app/backend/instance/data
 
       # Door images uploaded via the admin dashboard
       - raspi_uploads:/app/backend/uploads

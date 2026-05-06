@@ -76,8 +76,9 @@ COPY --from=frontend-build /app/frontend/dist ./frontend/dist/
 
 # ── Persistent directories ───────────────────────────────────────────────────
 # These are mounted as Docker named volumes at runtime (see docker-compose.yml)
+# Flask-SQLAlchemy 3.x resolves sqlite:///data/raspi.db relative to instance_path
 RUN mkdir -p \
-    /app/backend/data \
+    /app/backend/instance/data \
     /app/backend/uploads \
     /app/config
 
