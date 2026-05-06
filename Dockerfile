@@ -44,12 +44,14 @@ WORKDIR /app
 # bash       : needed to run stop_ngrok.sh
 # procps     : pkill used by stop_ngrok.sh
 # gcc        : needed to compile any Python C extensions (bcrypt, cryptography)
-# libffi-dev : required by cffi (cryptography dependency)
+# libffi-dev  : required by cffi (bcrypt dependency)
+# libc6-dev   : C stdlib headers required to compile cffi from source on armv7l
 RUN apt-get update && apt-get install -y --no-install-recommends \
     bash \
     procps \
     gcc \
     libffi-dev \
+    libc6-dev \
     && rm -rf /var/lib/apt/lists/*
 
 # ── Python dependencies ──────────────────────────────────────────────────────
