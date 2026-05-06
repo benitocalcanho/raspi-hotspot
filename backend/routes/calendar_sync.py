@@ -1,5 +1,7 @@
 """
 Calendar sync routes — admin can manually trigger a sync or view sync status.
+Endpoints:
+    /api/calendar/sync: Manually trigger a Google Calendar sync
 """
 from flask import Blueprint, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity

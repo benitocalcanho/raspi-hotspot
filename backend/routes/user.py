@@ -1,5 +1,8 @@
 """
 User routes — each authenticated user sees only their own data.
+Endpoints:
+    /api/user/dashboard: Returns dashboard data for the authenticated user
+    /api/user/activity: Returns audit log for the authenticated user
 """
 from flask import Blueprint, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity

@@ -1,0 +1,49 @@
+# ============================================================
+#  Raspi Hotspot — Docker Compose
+#
+#  Desktop (no GPIO):
+#    docker compose up --build
+#
+#  Raspberry Pi (with GPIO):
+#    docker compose -f docker-compose.yml -f docker-compose.pi.yml up --build
+#
+#  First run: copy config/.env.example → config/.env and fill in values.
+# ============================================================
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        # Set to "true" only on Raspberry Pi (installs gpiozero)
+        ENABLE_GPIO: "false"
+
+    # Read all config from config/.env — no env vars baked into the image
+    env_file:
+      - ./config/.env
+
+    ports:
+      # Host port : Container port
+      - "5000:5000"
+
+    volumes:
+      # SQLite database — persists across container restarts and rebuilds
+      - raspi_data:/app/backend/data
+
+      # Door images uploaded via the admin dashboard
+      - raspi_uploads:/app/backend/uploads
+
+    restart: unless-stopped
+
+    # Optional: expose container logs with a clear name
+    container_name: raspi-hotspot
+
+# ── Named volumes ─────────────────────────────────────────────────────────────
+# Docker manages these on the host. To inspect:
+#   docker volume inspect raspi-hotspot_raspi_data
+# To back up the database:
+#   docker cp raspi-hotspot:/app/backend/data/raspi.db ./backup.db
+volumes:
+  raspi_data:
+  raspi_uploads:

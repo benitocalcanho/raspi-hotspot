@@ -1,0 +1,47 @@
+# ============================================================
+#  docker-compose.prod.yml — Production deployment
+#
+#  Pulls the pre-built image from GitHub Container Registry.
+#  No Docker build tools or Node.js needed on the Pi.
+#
+#  Desktop / no GPIO:
+#    docker compose -f docker-compose.prod.yml up -d
+#
+#  Raspberry Pi (with GPIO):
+#    docker compose -f docker-compose.prod.yml -f docker-compose.pi.yml up -d
+#
+#  First run:
+#    cp config/.env.example config/.env
+#    nano config/.env   # set SECRET_KEY, JWT_SECRET_KEY, ADMIN_PASSWORD
+# ============================================================
+
+services:
+  app:
+    # Pre-built multi-arch image from GitHub Container Registry.
+    # Supports: linux/amd64 (desktop), linux/arm64 (Pi 4/5), linux/arm/v7 (Pi 2/3)
+    # Replace OWNER with your GitHub username or organisation.
+    image: ghcr.io/benitocalcanho/raspi-hotspot:latest
+
+    # Read all secrets from config/.env — never bake secrets into the image
+    env_file:
+      - ./config/.env
+
+    ports:
+      # Host port : Container port
+      - "5000:5000"
+
+    volumes:
+      # SQLite database — persists across container restarts and image updates
+      - raspi_data:/app/backend/data
+
+      # Door images uploaded via the admin dashboard
+      - raspi_uploads:/app/backend/uploads
+
+    restart: unless-stopped
+    container_name: raspi-hotspot
+
+# ── Named volumes ─────────────────────────────────────────────────────────────
+# Docker manages these on the host file system automatically.
+volumes:
+  raspi_data:
+  raspi_uploads:

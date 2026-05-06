@@ -1,6 +1,6 @@
 """
-Admin routes — accessible only via Tailscale (enforced by @tailscale_required).
-Covers user CRUD, audit log viewing, ngrok status, and system overview.
+Admin routes for user management, audit log, ngrok status, and system overview.
+All endpoints require authentication. Some endpoints are admin-only.
 """
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
@@ -13,21 +13,52 @@ from services import ngrok_service
 from utils.decorators import require_roles
 
 
+
+# Blueprint for all /api/admin endpoints
 admin_bp = Blueprint("admin", __name__)
+# Allowed roles for admin endpoints
 ALLOWED_ROLES = ("admin", "user", "cleaner", "guest")
 
-# ── Button press logging (frontend virtual button) ───────────────
+######################################################################
+# Button press logging (frontend virtual button)
+# This endpoint is called by the frontend when a user presses a door button.
+# It logs the event and sends an email notification (async, non-blocking).
+######################################################################
 @admin_bp.route("/audit/button_press", methods=["POST"])
 @jwt_required()
 def log_button_press():
     user_id = int(get_jwt_identity())
     data = request.get_json(silent=True) or {}
     button = data.get("button")
+
+    # Log the button press event to the audit log
     log_event("button_press", user_id=user_id, detail={"button": button})
+
+
+    # Send email notification in a background thread (non-blocking)
+    from services.email_service import send_notification_email
+    user = User.query.get(user_id)
+    device = request.headers.get("User-Agent", "Unknown")
+    subject = f"[Raspi Hotspot] {button} pressed by {user.username}"
+    body = f"User: {user.username}\nRole: {user.role}\nButton: {button}\nDevice: {device}"
+    import threading
+    from flask import current_app
+    app = current_app._get_current_object() if hasattr(current_app, '_get_current_object') else current_app
+    def send_email_async(subject, body, app):
+        """Send email notification in a background thread with app context."""
+        try:
+            with app.app_context():
+                send_notification_email(subject, body)
+        except Exception as e:
+            print(f"[Email Debug] Failed to send notification: {e}")
+
+    threading.Thread(target=send_email_async, args=(subject, body, app), daemon=True).start()
+
     return jsonify({"status": "ok"}), 200
 
-# ── Settings schema ────────────────────────────────────────────────────────────
-# Defines which config keys are exposed in the GUI, and how to display them.
+#
+# Settings schema for the admin dashboard GUI.
+# Each key defines a configurable field, its label, section, and type.
 SETTINGS_SCHEMA = {
         # Email/SMTP notification settings
         "SMTP_HOST": {
@@ -35,36 +66,42 @@ SETTINGS_SCHEMA = {
             "section": "email",
             "secret": False,
             "multiline": False,
+            # Hostname of your SMTP server (e.g. smtp.gmail.com)
         },
         "SMTP_PORT": {
             "label": "SMTP Port",
             "section": "email",
             "secret": False,
             "multiline": False,
+            # Port for SMTP server (usually 587 for TLS)
         },
         "SMTP_USER": {
             "label": "SMTP Username",
             "section": "email",
             "secret": True,
             "multiline": False,
+            # Username for SMTP authentication
         },
         "SMTP_PASS": {
             "label": "SMTP Password",
             "section": "email",
             "secret": True,
             "multiline": False,
+            # Password for SMTP authentication
         },
         "EMAIL_SENDER": {
             "label": "Sender Email",
             "section": "email",
             "secret": False,
             "multiline": False,
+            # Email address that appears in the "From" field
         },
         "EMAIL_RECIPIENT": {
             "label": "Recipient Email",
             "section": "email",
             "secret": False,
             "multiline": False,
+            # Email address that will receive notifications
         },
     "ICAL_URL": {
         "label": "Private iCal URL",

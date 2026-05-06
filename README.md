@@ -1,6 +1,8 @@
 
 # Raspi Hotspot — Airbnb Guest Access System
 
+**Note:** Docker deployment is not supported yet. Please follow the manual installation instructions below. All configuration is done via the web dashboard after install—no .env editing or Docker needed.
+
 A plug-and-play **Raspberry Pi** web app for short-term rental hosts. Guests connect to your local network and get a simple phone-friendly page to unlock building and apartment doors. The admin dashboard manages users, configures all operational secrets via a GUI, and syncs guest accounts automatically from a private iCal URL — no API credentials or .env editing required after install.
 
 ## Features
@@ -42,6 +44,7 @@ A plug-and-play **Raspberry Pi** web app for short-term rental hosts. Guests con
                      │  GPIO pins via gpiozero              │
                      └──────────────────────────────────────┘
 ```
+
 
 ## Project Structure
 
@@ -97,23 +100,51 @@ raspi-hotspot/
 
 ## Quick Install on Raspberry Pi
 
-You can deploy this project on a fresh Raspberry Pi in minutes:
+**Option A — One command (recommended)**
+
+The pre-built image is published to GitHub Container Registry on every push to `main`.
+No build tools, Node.js, or Python needed on the Pi — Docker just pulls the image.
 
 ```bash
-git clone https://github.com/YOUR_USER/raspi-hotspot.git
+curl -fsSL https://raw.githubusercontent.com/benitocalcanho/raspi-hotspot/main/install.sh | bash
+```
+
+The script installs Docker if needed, downloads the compose files, opens `config/.env` for
+your secrets, then pulls and starts the container (auto-detects Pi for GPIO).
+
+**Option B — Manual Docker**
+
+```bash
+git clone https://github.com/benitocalcanho/raspi-hotspot.git
+cd raspi-hotspot
+cp config/.env.example config/.env
+nano config/.env   # set SECRET_KEY, JWT_SECRET_KEY, ADMIN_PASSWORD
+
+# Desktop / no GPIO:
+docker compose -f docker-compose.prod.yml up -d
+
+# Raspberry Pi (GPIO relays):
+docker compose -f docker-compose.prod.yml -f docker-compose.pi.yml up -d
+```
+
+**Option C — Build from source (developers)**
+
+```bash
+git clone https://github.com/benitocalcanho/raspi-hotspot.git
+cd raspi-hotspot
+cp config/.env.example config/.env && nano config/.env
+
+docker compose up --build -d                                                        # desktop
+docker compose -f docker-compose.yml -f docker-compose.pi.yml up --build -d        # Pi
+```
+
+**Option D — Manual Install (no Docker):**
+
+```bash
+git clone https://github.com/benitocalcanho/raspi-hotspot.git
 cd raspi-hotspot
 sudo bash scripts/01-setup-pi.sh
 ```
-
-This script will:
-- Update your system and install all dependencies (Python, Node.js, hostapd, etc.)
-- Set up a Python virtual environment
-- Install backend and frontend dependencies
-- Prepare the data directory
-
-After running the script, open a browser to your Pi's IP (or ngrok URL) and log in as admin. **All secrets and settings are configured via the dashboard — no file editing or SSH required after install.**
-
-For advanced setup (hotspot, Tailscale, ngrok, systemd), see the scripts in the `scripts/` folder and follow the step-by-step comments in each script.
 
 ---
 
@@ -122,11 +153,13 @@ For advanced setup (hotspot, Tailscale, ngrok, systemd), see the scripts in the 
 - Raspberry Pi (any model with network access)
 - A private iCal URL (from your calendar provider; Google, Apple, Outlook, etc.)
 
-### 1 — Install dependencies
+
+### 1 — Install dependencies (Manual Only)
 
 ```bash
 git clone https://github.com/YOUR_USER/raspi-hotspot.git
 cd raspi-hotspot
+
 
 # Backend
 cd backend
@@ -140,6 +173,7 @@ npm install
 npm run build
 ```
 
+
 ### 2 — Run
 
 ```bash
@@ -148,18 +182,22 @@ source .venv/bin/activate
 python app.py
 ```
 
+
 Open **http://<pi-ip>:5000** — log in as admin (default credentials: admin / admin12345).
 
 ### 3 — Configure all settings in the browser
+
 
 Log in as admin → **Settings** tab → paste your iCal URL, ngrok token, WiFi, SMTP, and any other secrets. All operational settings are stored in the database and take effect immediately. No .env or SSH needed after install.
 
 ## Environment Variables
 
+
 All operational secrets (iCal URL, ngrok, WiFi, SMTP, etc.) are now managed via the dashboard and stored in the database. The only environment variables you may need are for initial admin bootstrap or development:
 
 | Variable | Default | Description |
 |---|---|---|
+
 | `SECRET_KEY` | random on each start | Flask/JWT secret — **set a fixed value in production** |
 | `ADMIN_USERNAME` | `admin` | Initial admin username (used only if no admin exists) |
 | `ADMIN_PASSWORD` | `admin12345` | Initial admin password (used only if no admin exists) |
@@ -168,6 +206,7 @@ After first login, set all other secrets in the dashboard. No .env editing requi
 
 ## Calendar Guest Sync
 
+
 The scheduler runs two cron jobs daily:
 
 | Time | Action |
@@ -175,7 +214,8 @@ The scheduler runs two cron jobs daily:
 | `CHECKOUT_TIME` (12:00) | Deletes all `guest` accounts created by the calendar |
 | `CHECKIN_TIME` (14:00) | Fetches iCal URL, finds today's events, creates guest account |
 
-The **first word** of the calendar event title becomes the username (lowercased). Passwords are set from the dashboard setting. Login is case-insensitive.
+
+The **first word** of the calendar event title becomes the username (lowercased). Passwords are set from the dashboard setting. Login is case-insensitive. **No email field is required for user creation.**
 
 To trigger sync manually: Admin dashboard → **Calendar Sync** tab → **Sync Now**.
 

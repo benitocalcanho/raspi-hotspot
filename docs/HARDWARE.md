@@ -1,5 +1,8 @@
 # Hardware Setup — Raspberry Pi 3
 
+**Note:** Docker deployment is not supported yet. Please follow the manual installation instructions in the README and INSTALLATION docs.
+# Hardware Setup — Raspberry Pi 3
+
 ## Board Overview
 
 ```

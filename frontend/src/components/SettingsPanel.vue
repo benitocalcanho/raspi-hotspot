@@ -61,31 +61,24 @@ function showAsPlaintext(key) {
 import { ref, onMounted, computed } from 'vue'
 import api from '../api.js'
 
+// Props
 const props = defineProps({
+  // If set, only show this section
   onlySection: { type: String, default: null },
 })
 
-const loading = ref(true)
-const schema = ref({})
-const values = ref({})
-const form = ref({})
-const saving = ref(null)
-const saved = ref(null)
-const sectionError = ref({})
+// State fields
+const loading = ref(true)         // True while loading settings from API
+const schema = ref({})            // Settings schema (field definitions)
+const values = ref({})            // Current values for each setting
+const form = ref({})              // Form model for editing settings
+const saving = ref(null)          // Section ID currently being saved
+const saved = ref(null)           // Section ID that was just saved
+const sectionError = ref({})      // Error messages per section
 
+// Section definitions for the settings UI
 const allSections = [
-  {
-    id: 'email',
-    label: 'Email Notifications',
-    desc: 'Configure SMTP server and recipient for notification emails. These settings are used to send alerts when a user presses a button.',
-    keys: ['SMTP_HOST', 'SMTP_PORT', 'SMTP_USER', 'SMTP_PASS', 'EMAIL_SENDER', 'EMAIL_RECIPIENT'],
-  },
-  {
-    id: 'ical',
-    label: 'Google Calendar (iCal — recommended)',
-    desc: 'Paste the private iCal URL from Google Calendar → Settings → "Secret address in iCal format". No API keys needed. One event per day = one active guest.',
-    keys: ['ICAL_URL', 'ICAL_GUEST_PASSWORD'],
-  },
+  // Calendar-related sections removed from default Settings tab, will be shown only in Calendar tab
   {
     id: 'schedule',
     label: 'Guest Schedule',
@@ -113,7 +106,57 @@ const allSections = [
 ]
 
 const sections = computed(() => {
-  if (!props.onlySection) return allSections
+  if (!props.onlySection) {
+    // Show all except email, ical, schedule, cleaner, and calendar_rules sections in Settings tab
+    return allSections.filter(s => !['email', 'ical', 'schedule', 'cleaner', 'calendar_rules'].includes(s.id))
+  }
+  if (props.onlySection === 'email') {
+    // Only show email section in Email tab
+    return [
+      {
+        id: 'email',
+        label: 'Email Notifications',
+        desc: 'Configure SMTP server and recipient for notification emails. These settings are used to send alerts when a user presses a button.',
+        keys: ['SMTP_HOST', 'SMTP_PORT', 'SMTP_USER', 'SMTP_PASS', 'EMAIL_SENDER', 'EMAIL_RECIPIENT'],
+      },
+    ]
+  }
+  // Calendar tab sections
+  const calendarSections = {
+    ical: {
+      id: 'ical',
+      label: 'Google Calendar (iCal — recommended)',
+      desc: 'Paste the private iCal URL from Google Calendar → Settings → "Secret address in iCal format". No API keys needed. One event per day = one active guest.',
+      keys: ['ICAL_URL'],
+    },
+    guest_password: {
+      id: 'guest_password',
+      label: 'Guest Password',
+      desc: 'Default password for guests created from calendar events.',
+      keys: ['ICAL_GUEST_PASSWORD'],
+    },
+    schedule: {
+      id: 'schedule',
+      label: 'Guest Schedule',
+      desc: 'Daily times when guests are checked out and checked in. Use 24-hour HH:MM format (e.g. 12:00 and 14:00).',
+      keys: ['CHECKOUT_TIME', 'CHECKIN_TIME'],
+    },
+    cleaner: {
+      id: 'cleaner',
+      label: 'Cleaner Account',
+      desc: 'Set the username and password for the cleaner. Only one cleaner account is active at a time. Role is always "cleaner".',
+      keys: ['CLEANER_USERNAME', 'CLEANER_PASSWORD'],
+    },
+    calendar_rules: {
+      id: 'calendar_rules',
+      label: 'Calendar Rules',
+      desc: 'Controls how guests are created from calendar events.',
+      keys: ['CALENDAR_GUEST_DEFAULT_PASSWORD'],
+    },
+  }
+  if (calendarSections[props.onlySection]) {
+    return [calendarSections[props.onlySection]]
+  }
   return allSections.filter(s => s.id === props.onlySection)
 })
 

@@ -1,0 +1,26 @@
+# ============================================================
+#  docker-compose.pi.yml — Raspberry Pi GPIO overlay
+#
+#  Apply on top of either docker-compose.yml or docker-compose.prod.yml:
+#
+#  Dev build:
+#    docker compose -f docker-compose.yml -f docker-compose.pi.yml up --build
+#
+#  Production (pull from registry, no build):
+#    docker compose -f docker-compose.prod.yml -f docker-compose.pi.yml up -d
+#
+#  This overlay:
+#    - Sets ENABLE_GPIO=true to activate the relay routes
+#    - Maps /dev/gpiomem into the container for hardware access
+# ============================================================
+
+services:
+  app:
+    environment:
+      # Enable the GPIO API routes and hardware relay output
+      ENABLE_GPIO: "true"
+
+    devices:
+      # Pass the GPIO memory device so gpiozero can drive relay pins
+      - /dev/gpiomem:/dev/gpiomem
+

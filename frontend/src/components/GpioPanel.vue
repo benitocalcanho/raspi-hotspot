@@ -44,13 +44,28 @@
 import { ref, onMounted } from 'vue'
 import { useGpioStore } from '../stores/gpio.js'
 
-const props = defineProps({ showAdd: { type: Boolean, default: false } })
+// Props
+const props = defineProps({
+  // If true, show the "Add Pin" form
+  showAdd: { type: Boolean, default: false }
+})
+
+// Pinia store for GPIO state and actions
 const gpioStore = useGpioStore()
+
+// Error message for add pin form
 const addError = ref('')
-const newPin = ref({ pin_number: null, label: '', direction: 'output' })
+
+// Model for new pin form
+const newPin = ref({
+  pin_number: null,   // BCM pin number
+  label: '',          // Human-readable label
+  direction: 'output' // Pin direction ('output' or 'input')
+})
 
 onMounted(() => gpioStore.fetchPins())
 
+// Add a new pin using the form values
 async function addPin() {
   addError.value = ''
   try {

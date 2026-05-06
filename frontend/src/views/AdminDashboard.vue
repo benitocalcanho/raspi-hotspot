@@ -33,7 +33,7 @@
       <button :class="{active: tab==='users'}" @click="tab='users'">Users</button>
       <button :class="{active: tab==='audit'}" @click="tab='audit'">Audit Log</button>
       <button :class="{active: tab==='calendar'}" @click="tab='calendar'">Calendar Sync</button>
-      <button :class="{active: tab==='settings'}" @click="tab='settings'">Settings</button>
+      <button :class="{active: tab==='settings'}" @click="tab='settings'">ngrok Tunnel</button>
       <button :class="{active: tab==='email'}" @click="tab='email'">Email</button>
       <button :class="{active: tab==='doors'}" @click="tab='doors'">Door Images</button>
       <button :class="{active: tab==='buttonhistory'}" @click="tab='buttonhistory'">Button History</button>
@@ -74,9 +74,10 @@
       <button @click="loadAudit" class="btn-sm mt">Load more</button>
     </section>
 
-    <!-- Settings tab -->
+
+    <!-- ngrok Tunnel tab -->
     <section v-if="tab === 'settings'">
-      <h3>App Settings</h3>
+      <h3>ngrok Tunnel Settings</h3>
       <p class="hint">Changes take effect immediately — no restart needed.</p>
       <SettingsPanel :onlySection="null" />
     </section>
@@ -90,17 +91,13 @@
 
     <!-- Calendar tab -->
     <section v-if="tab === 'calendar'">
-      <h3>Google Calendar Sync</h3>
-      <p class="hint">
-        Set your private iCal URL in <strong>Settings</strong>. Events starting today will create the guest account at check-in time.
-      </p>
-
-      <div class="schedule-info" v-if="scheduleInfo">
-        <span>Check-out: <strong>{{ scheduleInfo.checkout }}</strong></span>
-        <span>Check-in: <strong>{{ scheduleInfo.checkin }}</strong></span>
-      </div>
-
-      <div class="btn-row">
+      <h3>Google Calendar Settings</h3>
+      <SettingsPanel :onlySection="'ical'" />
+      <SettingsPanel :onlySection="'guest_password'" />
+      <SettingsPanel :onlySection="'schedule'" />
+      <SettingsPanel :onlySection="'cleaner'" />
+      <SettingsPanel :onlySection="'calendar_rules'" />
+      <div class="btn-row mt">
         <button @click="triggerSync" :disabled="syncing" class="btn-primary">
           {{ syncing ? 'Syncing…' : 'Sync Now' }}
         </button>

@@ -1,5 +1,13 @@
 """
 AuditLog model — records every authentication and sensitive event.
+Fields:
+    id: Primary key
+    user_id: User who triggered the event
+    event: Event type (e.g. 'login_success', 'button_press')
+    ip_address: IPv4 or IPv6 address
+    user_agent: Browser/device info
+    detail: JSON-serializable extra info
+    timestamp: UTC timestamp
 """
 import json
 from datetime import datetime, timezone
@@ -11,10 +19,10 @@ class AuditLog(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=True, index=True)
-    event = db.Column(db.String(80), nullable=False)   # e.g. 'login_success', 'login_failed'
-    ip_address = db.Column(db.String(45), nullable=True)   # IPv4 or IPv6
-    user_agent = db.Column(db.String(300), nullable=True)
-    detail = db.Column(db.Text, nullable=True)             # JSON-serialisable extra info
+    event = db.Column(db.String(80), nullable=False)   # Event type (e.g. 'login_success', 'button_press')
+    ip_address = db.Column(db.String(45), nullable=True)   # IPv4 or IPv6 address
+    user_agent = db.Column(db.String(300), nullable=True)  # Browser/device info
+    detail = db.Column(db.Text, nullable=True)             # JSON-serializable extra info
     timestamp = db.Column(
         db.DateTime,
         nullable=False,

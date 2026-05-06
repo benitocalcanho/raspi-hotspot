@@ -1,5 +1,16 @@
 """
 User model — stores credentials and role information.
+Fields:
+    id: Primary key
+    username: Unique username for login
+    email: Unique email (not used for login, but required by DB)
+    password_hash: Hashed password
+    role: User role ('admin', 'user', 'cleaner', 'guest')
+    is_active: Is the user active
+    created_at: UTC timestamp of creation
+    created_by: How the account was created ('manual', 'calendar')
+    calendar_event_id: Optional reference to Google Calendar event
+    audit_logs: Relationship to AuditLog
 """
 from datetime import datetime, timezone
 import re
@@ -14,10 +25,10 @@ class User(db.Model):
     username = db.Column(db.String(80), unique=True, nullable=False, index=True)
     email = db.Column(db.String(120), unique=True, nullable=False, index=True)
     password_hash = db.Column(db.String(128), nullable=False)
-    role = db.Column(db.String(20), nullable=False, default="user")  # 'admin' | 'user'
+    role = db.Column(db.String(20), nullable=False, default="user")  # User role: 'admin', 'user', 'cleaner', 'guest'
     is_active = db.Column(db.Boolean, nullable=False, default=True)
     created_at = db.Column(db.DateTime, nullable=False, default=lambda: datetime.now(timezone.utc))
-    # Source of account creation: 'manual' | 'calendar'
+    # Source of account creation: 'manual' (created by admin) or 'calendar' (auto-created from Google Calendar)
     created_by = db.Column(db.String(50), nullable=False, default="manual")
     # Optional reference to the Google Calendar event ID that created this user
     calendar_event_id = db.Column(db.String(200), nullable=True)

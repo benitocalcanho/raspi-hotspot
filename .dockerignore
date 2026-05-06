@@ -1,0 +1,52 @@
+# ── Python ────────────────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.pyc
+*.egg-info/
+.eggs/
+dist/
+build/
+
+# Virtual environments
+backend/.venv/
+.venv/
+venv/
+env/
+
+# ── Node.js ───────────────────────────────────────────────────────────────────
+frontend/node_modules/
+node_modules/
+frontend/dist/         # built by Stage 1 inside the image
+
+# ── Secrets / config ──────────────────────────────────────────────────────────
+config/.env            # never bake secrets into the image
+*.pem
+*.key
+
+# ── Database / runtime data ───────────────────────────────────────────────────
+backend/data/
+backend/instance/
+backend/uploads/       # provided via Docker volume at runtime
+*.db
+*.sqlite
+*.sqlite3
+
+# ── Git ───────────────────────────────────────────────────────────────────────
+.git/
+.gitignore
+
+# ── IDE / OS ──────────────────────────────────────────────────────────────────
+.vscode/
+.idea/
+*.DS_Store
+Thumbs.db
+
+# ── Logs ──────────────────────────────────────────────────────────────────────
+*.log
+logs/
+
+# ── Docs (not needed at runtime) ──────────────────────────────────────────────
+docs/
+README.md

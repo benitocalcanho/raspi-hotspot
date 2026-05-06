@@ -22,7 +22,7 @@ class Config:
 
     # ── Database ─────────────────────────────────────────────
     SQLALCHEMY_DATABASE_URI: str = os.getenv(
-        "DATABASE_URL", "sqlite:///data/raspi.db"
+        "DATABASE_URL", "sqlite:///instance/data/raspi.db"
     )
     SQLALCHEMY_TRACK_MODIFICATIONS: bool = False
 

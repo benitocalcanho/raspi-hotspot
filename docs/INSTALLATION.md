@@ -1,16 +1,109 @@
 # Installation Guide — Raspberry Pi 3 / Pi 2 B
 
-This guide focuses on the core application stack:
+This guide covers two deployment paths:
+
+| Path | Best for |
+|------|----------|
+| **Docker** (recommended) | Fastest setup, easiest updates, consistent across PC and Pi |
+| **Manual** | If you can't install Docker on the Pi, or need full OS-level control |
+
+Dependency files:
+- `backend/requirements.txt` = core dependencies (good for local PC dev)
+- `backend/requirements-pi.txt` = core + Raspberry Pi GPIO dependencies
+
+---
+
+## Docker Deployment (Recommended)
+
+### Prerequisites
+
+- Docker and Docker Compose installed on the Pi:
+  ```bash
+  curl -fsSL https://get.docker.com | sh
+  sudo usermod -aG docker pi
+  # Log out and back in for group change to take effect
+  ```
+- The project cloned onto the Pi
+
+### 1 — Clone and configure
+
+```bash
+git clone https://github.com/YOUR_USER/raspi-hotspot.git
+cd raspi-hotspot
+cp config/.env.example config/.env
+nano config/.env          # fill in SECRET_KEY, JWT_SECRET_KEY, ADMIN_PASSWORD, etc.
+```
+
+Generate secret keys:
+```bash
+python3 -c "import secrets; print(secrets.token_hex(32))"
+```
+
+### 2 — Build and run (desktop, no GPIO)
+
+```bash
+docker compose up --build -d
+```
+
+### 2 — Build and run (Raspberry Pi, with GPIO)
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.pi.yml up --build -d
+```
+
+This overlay:
+- Installs `gpiozero` inside the image
+- Sets `ENABLE_GPIO=true`
+- Maps `/dev/gpiomem` into the container for relay hardware access
+
+### 3 — Access the app
+
+- **Local**: `http://<pi-ip>:5000`
+- **Admin remote**: Via Tailscale `http://100.x.x.x:5000`
+- **Users remote**: Via ngrok URL shown in Admin Dashboard
+
+Log in as admin (credentials from `config/.env`). Set all other secrets (ngrok, iCal, SMTP) in the dashboard.
+
+### Useful commands
+
+```bash
+# Follow logs
+docker compose logs -f
+
+# Stop the app
+docker compose down
+
+# Update after a git pull
+git pull
+docker compose up --build -d
+
+# Back up the database
+docker cp raspi-hotspot:/app/backend/data/raspi.db ./backup.db
+
+# Restore a backup
+docker cp ./backup.db raspi-hotspot:/app/backend/data/raspi.db
+```
+
+### Persistent data
+
+Docker named volumes keep your data safe across rebuilds:
+
+| Volume | Contents |
+|--------|----------|
+| `raspi-hotspot_raspi_data` | SQLite database |
+| `raspi-hotspot_raspi_uploads` | Door images |
+
+---
+
+## Manual Deployment
+
+This focuses on the core application stack:
 - user management
 - Google Calendar sync
 - admin access over Tailscale
 - user access over ngrok
 
 The hotspot setup script is optional and not required for the main deployment path.
-
-Dependency files:
-- `backend/requirements.txt` = core dependencies (good for local PC dev)
-- `backend/requirements-pi.txt` = core + Raspberry Pi GPIO dependencies
 
 ## Prerequisites
 

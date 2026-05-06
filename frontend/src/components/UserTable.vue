@@ -40,18 +40,27 @@
 <script setup>
 import api from '../api.js'
 
-const props = defineProps({ users: Array })
+// Props
+const props = defineProps({
+  // Array of user objects to display
+  users: Array
+})
+
+// Emits 'refresh' when user data should be reloaded
 const emit = defineEmits(['refresh'])
 
+// Format ISO date string as local date
 function formatDate(iso) {
   return new Date(iso).toLocaleDateString()
 }
 
+// Toggle user active/suspended status
 async function toggleActive(user) {
   await api.patch(`/admin/users/${user.id}`, { is_active: !user.is_active })
   emit('refresh')
 }
 
+// Prompt for new username and update
 async function renameUser(user) {
   const newUsername = prompt('New username:', user.username)
   if (newUsername === null) return
@@ -65,6 +74,7 @@ async function renameUser(user) {
   }
 }
 
+// Prompt for new password and update
 async function setPassword(user) {
   const newPassword = prompt(`Set new password for ${user.username}:`)
   if (newPassword === null) return

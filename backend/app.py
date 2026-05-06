@@ -209,6 +209,9 @@ def _migrate_calendar_users_to_guest(app):
 
 if __name__ == "__main__":
     app = create_app()
+    # Store app globally for background threads
+    import flask
+    flask.current_app = app
     app.run(
         host=app.config["APP_HOST"],
         port=app.config["APP_PORT"],

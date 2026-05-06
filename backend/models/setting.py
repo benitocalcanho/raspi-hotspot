@@ -1,6 +1,10 @@
 """
 App settings — persisted key/value store so secrets can be managed via the
 admin GUI instead of editing .env files directly.
+Fields:
+    key: Setting key (unique, primary key)
+    value: Setting value (string)
+    updated_at: UTC timestamp of last update
 Values stored here override the corresponding environment variables at runtime.
 """
 from datetime import datetime, timezone

@@ -1,5 +1,10 @@
 """
 WiFi setup routes — used during first-boot hotspot onboarding.
+Endpoints:
+    /api/wifi/status: Get current WiFi connection status
+    /api/wifi/scan: Scan for available WiFi networks
+    /api/wifi/connect: Connect to a WiFi network
+    /api/wifi/teardown: Admin can tear down the hotspot
 After initial setup is complete these endpoints are not normally reachable
 (hotspot is torn down and the Pi is on the local network).
 """

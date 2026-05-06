@@ -1,5 +1,12 @@
 """
 GpioPin model — stores the configured GPIO pins and their current state.
+Fields:
+    id: Primary key
+    pin_number: BCM pin number (unique)
+    label: Human-readable name for the pin
+    direction: 'input' or 'output'
+    state: Current logical state (True/False)
+    updated_at: UTC timestamp of last update
 """
 from datetime import datetime, timezone
 from models import db
@@ -9,10 +16,10 @@ class GpioPin(db.Model):
     __tablename__ = "gpio_pins"
 
     id = db.Column(db.Integer, primary_key=True)
-    pin_number = db.Column(db.Integer, unique=True, nullable=False)   # BCM pin number
-    label = db.Column(db.String(80), nullable=False, default="")      # Human-readable name
-    direction = db.Column(db.String(10), nullable=False, default="output")  # 'input' | 'output'
-    state = db.Column(db.Boolean, nullable=False, default=False)      # current logical state
+    pin_number = db.Column(db.Integer, unique=True, nullable=False)   # BCM pin number (unique)
+    label = db.Column(db.String(80), nullable=False, default="")      # Human-readable name for the pin
+    direction = db.Column(db.String(10), nullable=False, default="output")  # Pin direction: 'input' or 'output'
+    state = db.Column(db.Boolean, nullable=False, default=False)      # Current logical state (True/False)
     updated_at = db.Column(
         db.DateTime,
         nullable=False,
