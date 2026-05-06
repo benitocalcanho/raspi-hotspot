@@ -41,11 +41,15 @@ ENV FLASK_ENV=production
 WORKDIR /app
 
 # ── System packages ──────────────────────────────────────────────────────────
-# bash   : needed to run stop_ngrok.sh
-# procps : pkill used by stop_ngrok.sh
+# bash       : needed to run stop_ngrok.sh
+# procps     : pkill used by stop_ngrok.sh
+# gcc        : needed to compile any Python C extensions (bcrypt, cryptography)
+# libffi-dev : required by cffi (cryptography dependency)
 RUN apt-get update && apt-get install -y --no-install-recommends \
     bash \
     procps \
+    gcc \
+    libffi-dev \
     && rm -rf /var/lib/apt/lists/*
 
 # ── Python dependencies ──────────────────────────────────────────────────────
@@ -55,8 +59,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY backend/requirements.txt ./backend/requirements.txt
 COPY backend/requirements-pi.txt ./backend/requirements-pi.txt
 
+# --prefer-binary: use pre-built wheels instead of compiling from source.
+# This is critical for arm/v7 (Pi 2/3) where Rust-based packages like
+# bcrypt and cryptography would otherwise time out during QEMU compilation.
 RUN pip install --upgrade pip --no-cache-dir && \
-    pip install --no-cache-dir -r backend/requirements-pi.txt
+    pip install --no-cache-dir --prefer-binary -r backend/requirements-pi.txt
 
 # ── Application source ───────────────────────────────────────────────────────
 COPY backend/ ./backend/
