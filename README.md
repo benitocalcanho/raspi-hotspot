@@ -6,7 +6,7 @@ A plug-and-play **Raspberry Pi** web app for short-term rental hosts. Guests con
 ## Features
 
 - **Guest dashboard** — Full-screen door cards with photo backgrounds; one-tap unlock buttons (GPIO relay, 5 s pulse)
-- **Automatic guest accounts** — Syncs from a private iCal URL; guest created at check-in time, deleted at check-out
+- **Automatic guest accounts** — Syncs from a private iCal URL; guest account is active for the full duration of the calendar event and deleted once the event ends
 - **Calendar-free fallback** — Manual user creation still works
 - **Role-based access** — `admin` / `user` / `cleaner` / `guest`
 - **Admin dashboard** — User management, audit log, calendar sync, schedule settings, WiFi network management, door image uploads
@@ -20,7 +20,7 @@ A plug-and-play **Raspberry Pi** web app for short-term rental hosts. Guests con
 1. Admin pastes the private iCal URL in **Settings** (no Google API needed)
 2. Every day at the configured check-in time (default 14:00), the app fetches today's calendar events — the first word of the event title becomes the guest's username
 3. The guest logs in on their phone and sees two door cards; tapping a button fires a GPIO relay
-4. At check-out time (default 12:00 the next day), the guest account is deleted automatically
+4. Each day at check-out time (default 12:00), the app re-checks the calendar — if the event still spans today (multi-day stay) the guest account is kept; once the event ends, the guest account is deleted and the cleaner account is created or reactivated so they can clean between stays
 
 ## Architecture
 

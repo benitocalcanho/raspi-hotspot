@@ -65,10 +65,22 @@ Two cron jobs run daily (times configurable in dashboard):
 
 | Time | Action |
 |------|--------|
-| `CHECKOUT_TIME` (default 12:00) | Deletes all calendar-created guest accounts, reactivates cleaner |
-| `CHECKIN_TIME` (default 14:00) | Fetches iCal, finds today's active event, creates guest account, deactivates cleaner |
+| `CHECKOUT_TIME` (default 12:00) | Re-checks the calendar. **If no event is active today:** deletes all calendar-created guest accounts, then creates the cleaner account if it doesn't exist yet, or reactivates it if it does. **If an event still spans today** (multi-day stay): guest account is kept, cleaner stays deactivated. |
+| `CHECKIN_TIME` (default 14:00) | Fetches iCal, finds any event active today (`DTSTART ≤ today < DTEND`), creates or updates the guest account, deactivates the cleaner account. |
 
 An event is **active today** when: `DTSTART ≤ today < DTEND` (iCal DTEND is exclusive).
+
+---
+
+## Cleaner Account Lifecycle
+
+The cleaner account is toggled automatically so the cleaner can access the property only between guest stays:
+
+1. **Guest checks out** (checkout job runs, no active event today) — cleaner account is created (if missing) or activated. The cleaner can now log in and access the door buttons.
+2. **New guest checks in** (check-in job runs, active event found) — cleaner account is deactivated. Guest account is created or updated. The cleaner loses access while a guest is in the property.
+3. **Multi-day stay** — if the checkout job runs while the event still covers today, the guest account is untouched and the cleaner remains deactivated for the full duration.
+
+The cleaner username and password are configured in **Settings → Cleaner Account**.
 
 ---
 
@@ -76,7 +88,13 @@ An event is **active today** when: `DTSTART ≤ today < DTEND` (iCal DTEND is ex
 
 Admin Dashboard → **Calendar Sync** tab → **Sync Now** button.
 
-Useful after adding a new event or changing the iCal URL.
+After syncing, the dashboard shows a summary of exactly what happened:
+- Guest created or kept (with event title and expiry date)
+- Guests deleted on checkout
+- Cleaner account created, activated, or deactivated
+- iCal URL not configured or fetch error (with the error message)
+
+Useful after adding a new event, extending a stay, or changing the iCal URL.
 
 ---
 

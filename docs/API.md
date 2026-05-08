@@ -161,4 +161,20 @@ Activate a saved WiFi profile immediately (network must be in range).
 ## Calendar (`/api/calendar`)
 
 ### POST `/calendar/sync` — admin only
-Manually trigger iCal sync. Returns `{ "users_created": N }`.
+Manually trigger iCal sync. Returns a detail object describing every change made:
+```json
+{
+  "status": "ok",
+  "error": null,
+  "guest_created": false,
+  "guest_updated": true,
+  "guest_username": "alice",
+  "guest_event_title": "Alice 0612",
+  "guest_valid_until": "2026-05-10",
+  "guests_deleted": 0,
+  "cleaner_deactivated": true,
+  "cleaner_activated": false,
+  "cleaner_created": false
+}
+```
+`status` values: `"ok"` · `"no_url"` (iCal URL not configured) · `"fetch_error"` (HTTP/network failure, `error` field has detail) · `"error"` (unexpected failure).

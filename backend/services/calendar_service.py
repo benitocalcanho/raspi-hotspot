@@ -111,59 +111,64 @@ def _parse_ical_events_active_today(ical_text: str):
     return active_events
 
 
-def sync_calendar_ical(app) -> int:
+def sync_calendar_ical(app) -> dict:
     """
-    iCal-based sync: fetch the private iCal URL, find events starting today,
-    and rotate the single active guest account to today's guest name.
+    iCal-based sync: fetch the private iCal URL, find events active today,
+    and rotate the single active guest account to today's guest.
+    Returns a detail dict describing every change made.
+    """
+    result = {
+        "status": "ok",
+        "error": None,
+        "guest_created": False,
+        "guest_updated": False,
+        "guest_username": None,
+        "guest_event_title": None,
+        "guest_valid_until": None,   # ISO date string YYYY-MM-DD
+        "guests_deleted": 0,
+        "cleaner_deactivated": False,
+        "cleaner_activated": False,
+        "cleaner_created": False,
+    }
 
-    Logic mirrors the original web2py bash script:
-      - Event title first word → new guest username (lowercased)
-      - All previous calendar-created guests are deactivated
-      - One active guest account at a time
-      - Fixed password from ICAL_GUEST_PASSWORD setting
-    Returns number of guest accounts created/updated (0 or 1).
-    """
     with app.app_context():
         import requests as req
         from models import db
         from models.user import User
+        from models.setting import Setting
         from services.audit_service import log_event
 
-        from models.setting import Setting
         ical_url = (Setting.get("ICAL_URL") or "").strip()
         password_mode = Setting.get("CALENDAR_GUEST_PASSWORD_MODE") or "fixed"
         default_password = Setting.get("CALENDAR_GUEST_DEFAULT_PASSWORD") or "guest12345"
 
         if not ical_url:
-            return 0
+            result["status"] = "no_url"
+            return result
 
         try:
             resp = req.get(ical_url, timeout=15)
             resp.raise_for_status()
         except Exception as exc:
             logger.error("iCal fetch failed: %s", exc)
-            return 0
-
-
+            result["status"] = "fetch_error"
+            result["error"] = str(exc)
+            return result
 
         active_events = _parse_ical_events_active_today(resp.text)
         if not active_events:
-            # No ongoing event: delete all calendar-created guest accounts
+            # No ongoing event — delete guests and activate/create cleaner
             old_guests = User.query.filter_by(created_by="calendar", role="guest").all()
-            deleted_count = 0
+            result["guests_deleted"] = len(old_guests)
             for old in old_guests:
                 db.session.delete(old)
-                deleted_count += 1
-            # Reactivate all cleaner accounts
-            from models.setting import Setting
             cleaner_username = (Setting.get("CLEANER_USERNAME") or app.config.get("CLEANER_USERNAME", "cleaner")).lower()
             cleaner_password = Setting.get("CLEANER_PASSWORD") or app.config.get("CLEANER_PASSWORD", "cleaner12345")
             cleaners = User.query.filter_by(role="cleaner").all()
             if not cleaners:
-                from models.user import User as UserModel
-                cleaner = UserModel(
+                cleaner = User(
                     username=cleaner_username,
-                    email=UserModel.build_internal_email(cleaner_username),
+                    email=User.build_internal_email(cleaner_username),
                     role="cleaner",
                     created_by="manual",
                     is_active=True,
@@ -172,41 +177,55 @@ def sync_calendar_ical(app) -> int:
                 try:
                     cleaner.set_password(cleaner_password)
                 except Exception as exc:
-                    logger.error(f"Cleaner password error: {exc}")
+                    logger.error("Cleaner password error: %s", exc)
                     db.session.rollback()
-                    raise ValueError(f"Cleaner password error: {exc}")
-                logger.info(f"iCal sync: no cleaner found, created cleaner '{cleaner_username}'.")
+                    result["status"] = "error"
+                    result["error"] = f"Cleaner password error: {exc}"
+                    return result
+                result["cleaner_created"] = True
+                logger.info("iCal sync: no cleaner found, created cleaner '%s'.", cleaner_username)
             else:
                 for cleaner in cleaners:
                     cleaner.is_active = True
                     db.session.add(cleaner)
+                result["cleaner_activated"] = True
             db.session.commit()
-            logger.info(f"iCal sync: no active events today. Deleted {deleted_count} calendar guest(s). Cleaner(s) activated.")
-            return 0
+            logger.info("iCal sync: no active events today. Deleted %d calendar guest(s).", result["guests_deleted"])
+            return result
 
-        # Use the first active event for guest username
+        # Use the first active event
         raw_name, dt_start, dt_end = active_events[0][0], active_events[0][1], active_events[0][2]
         first_word = raw_name.split()[0] if raw_name.split() else raw_name
         new_username = normalize_username(first_word)
         if not new_username:
             logger.warning("iCal sync: could not derive username from '%s'.", raw_name)
-            return 0
+            result["error"] = f"Could not derive username from event title '{raw_name}'"
+            return result
 
-        # Determine guest password based on mode
+        result["guest_username"] = new_username
+        result["guest_event_title"] = raw_name
+        result["guest_valid_until"] = dt_end.isoformat()
+
+        # Determine guest password
         if password_mode == "from_event":
             words = raw_name.split()
             guest_password = words[-1] if words else default_password
             logger.info("iCal sync: using last word of event title as password: '%s'", guest_password)
         else:
             guest_password = default_password
+
         # Deactivate all cleaner accounts during a guest stay
         cleaners = User.query.filter_by(role="cleaner").all()
+        deactivated_any = False
         for cleaner in cleaners:
             if cleaner.is_active:
                 cleaner.is_active = False
                 db.session.add(cleaner)
+                deactivated_any = True
         if cleaners:
             db.session.commit()
+        if deactivated_any:
+            result["cleaner_deactivated"] = True
             logger.info("All cleaner accounts deactivated due to active guest stay.")
 
         # Delete all previous calendar guests (keeps the table clean)
@@ -216,7 +235,7 @@ def sync_calendar_ical(app) -> int:
                 db.session.delete(old)
         db.session.flush()
 
-        # Check if a guest with this username already exists (same guest returning)
+        # Update existing guest or create fresh one
         existing = User.query.filter_by(username=new_username).first()
         if existing:
             existing.is_active = True
@@ -231,7 +250,8 @@ def sync_calendar_ical(app) -> int:
             log_event("guest_rotated", user_id=existing.id,
                       detail={"username": new_username, "source": "ical"})
             logger.info("iCal sync: updated existing guest '%s'.", new_username)
-            return 1
+            result["guest_updated"] = True
+            return result
 
         # Create fresh guest account
         try:
@@ -248,24 +268,31 @@ def sync_calendar_ical(app) -> int:
             log_event("user_created_from_calendar", user_id=new_user.id,
                       detail={"username": new_username, "source": "ical", "event_title": raw_name})
             logger.info("iCal sync: created guest '%s' (from '%s').", new_username, raw_name)
-            return 1
+            result["guest_created"] = True
+            return result
         except Exception as exc:
             db.session.rollback()
             logger.error("iCal sync: failed to create guest: %s", exc)
-            return 0
+            result["status"] = "error"
+            result["error"] = str(exc)
+            return result
 
 
 # ── Sync job ──────────────────────────────────────────────────────────────────
 
-def sync_calendar(app) -> int:
+def sync_calendar(app) -> dict:
     """
     Main sync entry point. Uses iCal mode if ICAL_URL is configured
     (recommended — no API credentials needed), otherwise falls back to
     the Google Calendar API mode.
     Runs inside an app context (called by APScheduler or manual trigger).
-    Returns the number of users created/updated in this run.
+    Returns a detail dict (iCal mode) or a minimal dict (legacy mode).
     """
-    if app.config.get("ICAL_URL", "").strip():
+    # DB setting takes priority: the dashboard stores ICAL_URL there, not in .env
+    with app.app_context():
+        from models.setting import Setting
+        ical_url = (Setting.get("ICAL_URL") or "").strip() or app.config.get("ICAL_URL", "").strip()
+    if ical_url:
         return sync_calendar_ical(app)
 
     # ── Google Calendar API mode (legacy) ─────────────────────────────────────
@@ -364,24 +391,31 @@ def sync_calendar(app) -> int:
                 db.session.rollback()
                 logger.error("Failed to create user from calendar event '%s': %s", event_id, exc)
 
-        return created
+        return {"status": "ok", "guest_created": created > 0, "guest_updated": False,
+                "guest_username": None, "guest_event_title": None, "guest_valid_until": None,
+                "guests_deleted": 0, "cleaner_deactivated": False,
+                "cleaner_activated": False, "cleaner_created": False, "error": None}
 
 
 # ── APScheduler setup ─────────────────────────────────────────────────────────
 
 def checkout_guests(app) -> None:
     """
-    Deactivate all active calendar-created guests.
-    Runs at checkout time (default 12:00) so previous guests lose access.
+    Run at checkout time (default 12:00).
+    Re-checks the calendar:
+    - If an event still covers today (multi-day stay): keep guest, ensure cleaner is deactivated.
+    - If no active event: delete calendar guests, then create or reactivate the cleaner account.
     """
     with app.app_context():
         from models import db
         from models.user import User
+        from models.setting import Setting
         from services.audit_service import log_event
 
         import requests as req
         cfg = app.config
-        ical_url = cfg.get("ICAL_URL", "").strip()
+        # Read from DB first (dashboard saves there), fall back to .env
+        ical_url = (Setting.get("ICAL_URL") or "").strip() or cfg.get("ICAL_URL", "").strip()
         if not ical_url:
             logger.info("Checkout job: no iCal URL configured.")
             return
@@ -393,8 +427,8 @@ def checkout_guests(app) -> None:
             return
         active_events = _parse_ical_events_active_today(resp.text)
         if active_events:
+            # Ongoing multi-day stay: keep guest, ensure cleaner is deactivated
             logger.info("Checkout job: ongoing event(s) found, not deleting guest.")
-            # Deactivate cleaner if active
             cleaner = User.query.filter_by(role="cleaner").first()
             if cleaner and cleaner.is_active:
                 cleaner.is_active = False
@@ -402,28 +436,44 @@ def checkout_guests(app) -> None:
                 db.session.commit()
                 logger.info("Cleaner account deactivated due to ongoing guest event.")
             return
+
+        # No active event — delete calendar guests and activate or create cleaner
         guests = User.query.filter_by(created_by="calendar", role="guest").all()
-        if not guests:
-            logger.info("Checkout job: no calendar guests to remove.")
-            # Activate cleaner if exists
-            cleaner = User.query.filter_by(role="cleaner").first()
-            if cleaner:
-                cleaner.is_active = True
-                db.session.add(cleaner)
-                db.session.commit()
-                logger.info("Cleaner account activated (no guests present).")
-            return
         count = len(guests)
         for g in guests:
             db.session.delete(g)
-        # Activate cleaner if exists
-        cleaner = User.query.filter_by(role="cleaner").first()
-        if cleaner:
-            cleaner.is_active = True
-            db.session.add(cleaner)
+
+        # Activate cleaner if exists; create it if it doesn't
+        cleaner_username = (Setting.get("CLEANER_USERNAME") or cfg.get("CLEANER_USERNAME", "cleaner")).lower()
+        cleaner_password = Setting.get("CLEANER_PASSWORD") or cfg.get("CLEANER_PASSWORD", "cleaner12345")
+        cleaners = User.query.filter_by(role="cleaner").all()
+        if not cleaners:
+            new_cleaner = User(
+                username=cleaner_username,
+                email=User.build_internal_email(cleaner_username),
+                role="cleaner",
+                created_by="manual",
+                is_active=True,
+            )
+            try:
+                new_cleaner.set_password(cleaner_password)
+            except Exception as exc:
+                logger.error("Checkout job: cleaner password error: %s", exc)
+                db.session.rollback()
+                return
+            db.session.add(new_cleaner)
+            logger.info("Checkout job: no cleaner found, created cleaner '%s'.", cleaner_username)
+        else:
+            for c in cleaners:
+                c.is_active = True
+                db.session.add(c)
+
         db.session.commit()
-        logger.info("Checkout job: deleted %d guest(s). Cleaner activated.", count)
-        log_event("guests_checked_out", detail={"count": count})
+        if count:
+            logger.info("Checkout job: deleted %d guest(s). Cleaner activated.", count)
+            log_event("guests_checked_out", detail={"count": count})
+        else:
+            logger.info("Checkout job: no calendar guests to remove. Cleaner activated.")
 
 
 def _parse_time(time_str: str):

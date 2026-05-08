@@ -105,7 +105,9 @@
           {{ restarting ? 'Restarting…' : 'Apply Schedule Changes' }}
         </button>
       </div>
-      <p v-if="syncResult !== null" class="success">Created {{ syncResult }} user(s).</p>
+      <div v-if="syncDetails" class="sync-summary">
+        <p v-for="(msg, i) in syncMessages" :key="i" :class="msg.type">{{ msg.text }}</p>
+      </div>
       <p v-if="syncError" class="error">{{ syncError }}</p>
       <p v-if="restartMsg" class="success">{{ restartMsg }}</p>
       <p v-if="restartError" class="error">{{ restartError }}</p>
@@ -142,7 +144,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import ButtonHistoryTable from '../components/ButtonHistoryTable.vue'
 import api from '../api.js'
 import UserTable from '../components/UserTable.vue'
@@ -158,8 +160,40 @@ const auditEntries = ref([])
 const showCreate = ref(false)
 const createError = ref('')
 const syncing = ref(false)
-const syncResult = ref(null)
+const syncDetails = ref(null)
 const syncError = ref('')
+
+function formatDate(iso) {
+  if (!iso) return ''
+  return new Date(iso + 'T12:00:00').toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' })
+}
+
+const syncMessages = computed(() => {
+  const d = syncDetails.value
+  if (!d) return []
+  if (d.status === 'no_url')
+    return [{ type: 'warn', text: 'No iCal URL configured — go to Calendar Settings and paste the URL.' }]
+  if (d.status === 'fetch_error')
+    return [{ type: 'error', text: `Could not fetch calendar: ${d.error}` }]
+  if (d.status === 'error')
+    return [{ type: 'error', text: `Sync error: ${d.error}` }]
+  const msgs = []
+  if (d.guest_created)
+    msgs.push({ type: 'success', text: `Guest account created: ${d.guest_username} (from "${d.guest_event_title}") — active until ${formatDate(d.guest_valid_until)}` })
+  if (d.guest_updated)
+    msgs.push({ type: 'info', text: `Guest account kept: ${d.guest_username} — stay active until ${formatDate(d.guest_valid_until)}` })
+  if (d.guests_deleted > 0)
+    msgs.push({ type: 'success', text: `${d.guests_deleted} guest account(s) deleted.` })
+  if (d.cleaner_created)
+    msgs.push({ type: 'success', text: 'Cleaner account created and activated.' })
+  if (d.cleaner_activated)
+    msgs.push({ type: 'success', text: 'Cleaner account activated.' })
+  if (d.cleaner_deactivated)
+    msgs.push({ type: 'info', text: 'Cleaner account deactivated — guest is in the property.' })
+  if (!msgs.length)
+    msgs.push({ type: 'info', text: 'Calendar checked — no changes needed.' })
+  return msgs
+})
 const restarting = ref(false)
 const restartMsg = ref('')
 const restartError = ref('')
@@ -283,11 +317,11 @@ async function restartScheduler() {
 
 async function triggerSync() {
   syncing.value = true
-  syncResult.value = null
+  syncDetails.value = null
   syncError.value = ''
   try {
     const { data } = await api.post('/calendar/sync')
-    syncResult.value = data.users_created
+    syncDetails.value = data
     await loadUsers()
   } catch (e) {
     syncError.value = e.response?.data?.error || 'Sync failed.'
@@ -334,6 +368,9 @@ h2 { margin-bottom: 1.2rem; }
 .create-form button { padding: 0.5rem 1rem; background: #27ae60; color: white; border: none; border-radius: 4px; cursor: pointer; }
 .error { color: #e74c3c; font-size: 0.88rem; }
 .success { color: #27ae60; font-size: 0.9rem; margin-top: 0.5rem;}
+.info { color: #2980b9; font-size: 0.9rem; margin-top: 0.5rem; }
+.warn { color: #e67e22; font-size: 0.9rem; margin-top: 0.5rem; }
+.sync-summary { margin-top: 0.5rem; }
 .hint { color: #666; margin-bottom: 1rem; }
 .hint code { background: #f0f0f0; padding: 0.2rem 0.4rem; border-radius: 3px; font-size: 0.85rem; }
 .mt { margin-top: 0.75rem; }
