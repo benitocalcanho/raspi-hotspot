@@ -130,10 +130,9 @@ def sync_calendar_ical(app) -> int:
         from services.audit_service import log_event
 
         from models.setting import Setting
-        ical_url = Setting.get("ICAL_URL") or ""
-        guest_password = Setting.get("ICAL_GUEST_PASSWORD") or Setting.get("CALENDAR_GUEST_DEFAULT_PASSWORD") or "guest12345"
-        ical_url = ical_url.strip()
-        guest_password = guest_password.strip()
+        ical_url = (Setting.get("ICAL_URL") or "").strip()
+        password_mode = Setting.get("CALENDAR_GUEST_PASSWORD_MODE") or "fixed"
+        default_password = Setting.get("CALENDAR_GUEST_DEFAULT_PASSWORD") or "guest12345"
 
         if not ical_url:
             return 0
@@ -155,12 +154,12 @@ def sync_calendar_ical(app) -> int:
             for old in old_guests:
                 db.session.delete(old)
                 deleted_count += 1
-            # Ensure cleaner account exists and is activated
+            # Reactivate all cleaner accounts
             from models.setting import Setting
             cleaner_username = (Setting.get("CLEANER_USERNAME") or app.config.get("CLEANER_USERNAME", "cleaner")).lower()
             cleaner_password = Setting.get("CLEANER_PASSWORD") or app.config.get("CLEANER_PASSWORD", "cleaner12345")
-            cleaner = User.query.filter_by(role="cleaner").first()
-            if not cleaner:
+            cleaners = User.query.filter_by(role="cleaner").all()
+            if not cleaners:
                 from models.user import User as UserModel
                 cleaner = UserModel(
                     username=cleaner_username,
@@ -170,37 +169,45 @@ def sync_calendar_ical(app) -> int:
                     is_active=True,
                 )
                 db.session.add(cleaner)
+                try:
+                    cleaner.set_password(cleaner_password)
+                except Exception as exc:
+                    logger.error(f"Cleaner password error: {exc}")
+                    db.session.rollback()
+                    raise ValueError(f"Cleaner password error: {exc}")
                 logger.info(f"iCal sync: no cleaner found, created cleaner '{cleaner_username}'.")
             else:
-                cleaner.is_active = True
-                cleaner.username = cleaner_username
-                cleaner.email = cleaner.__class__.build_internal_email(cleaner_username)
-                db.session.add(cleaner)
-            # Always set password to dashboard value
-            try:
-                cleaner.set_password(cleaner_password)
-            except Exception as exc:
-                logger.error(f"Cleaner password error: {exc}")
-                db.session.rollback()
-                raise ValueError(f"Cleaner password error: {exc}")
+                for cleaner in cleaners:
+                    cleaner.is_active = True
+                    db.session.add(cleaner)
             db.session.commit()
-            logger.info(f"iCal sync: no active events today. Deleted {deleted_count} calendar guest(s). Cleaner activated.")
+            logger.info(f"iCal sync: no active events today. Deleted {deleted_count} calendar guest(s). Cleaner(s) activated.")
             return 0
 
         # Use the first active event for guest username
-        raw_name = active_events[0][0]
+        raw_name, dt_start, dt_end = active_events[0][0], active_events[0][1], active_events[0][2]
         first_word = raw_name.split()[0] if raw_name.split() else raw_name
         new_username = normalize_username(first_word)
         if not new_username:
             logger.warning("iCal sync: could not derive username from '%s'.", raw_name)
             return 0
-        # Deactivate cleaner account if exists
-        cleaner = User.query.filter_by(role="cleaner").first()
-        if cleaner and cleaner.is_active:
-            cleaner.is_active = False
-            db.session.add(cleaner)
+
+        # Determine guest password based on mode
+        if password_mode == "from_event":
+            words = raw_name.split()
+            guest_password = words[-1] if words else default_password
+            logger.info("iCal sync: using last word of event title as password: '%s'", guest_password)
+        else:
+            guest_password = default_password
+        # Deactivate all cleaner accounts during a guest stay
+        cleaners = User.query.filter_by(role="cleaner").all()
+        for cleaner in cleaners:
+            if cleaner.is_active:
+                cleaner.is_active = False
+                db.session.add(cleaner)
+        if cleaners:
             db.session.commit()
-            logger.info("Cleaner account deactivated due to guest creation.")
+            logger.info("All cleaner accounts deactivated due to active guest stay.")
 
         # Delete all previous calendar guests (keeps the table clean)
         old_guests = User.query.filter_by(created_by="calendar", role="guest").all()
@@ -215,6 +222,7 @@ def sync_calendar_ical(app) -> int:
             existing.is_active = True
             existing.role = "guest"
             existing.created_by = "calendar"
+            existing.valid_until = dt_end
             try:
                 existing.set_password(guest_password)
             except ValueError:
@@ -232,6 +240,7 @@ def sync_calendar_ical(app) -> int:
                 email=User.build_internal_email(new_username),
                 role="guest",
                 created_by="calendar",
+                valid_until=dt_end,
             )
             new_user.set_password(guest_password)
             db.session.add(new_user)

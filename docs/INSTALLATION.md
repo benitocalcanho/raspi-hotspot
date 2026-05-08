@@ -28,10 +28,15 @@ Dependency files:
 ### 1 — Clone and configure
 
 ```bash
-git clone https://github.com/YOUR_USER/raspi-hotspot.git
+git clone https://github.com/benitocalcanho/raspi-hotspot.git
 cd raspi-hotspot
-cp config/.env.example config/.env
-nano config/.env          # fill in SECRET_KEY, JWT_SECRET_KEY, ADMIN_PASSWORD, etc.
+```
+
+The `config/.env` file ships with safe defaults — the app starts without editing it.
+For a production install, open it and set strong secret keys:
+
+```bash
+nano config/.env   # set SECRET_KEY and JWT_SECRET_KEY at minimum
 ```
 
 Generate secret keys:
@@ -39,16 +44,16 @@ Generate secret keys:
 python3 -c "import secrets; print(secrets.token_hex(32))"
 ```
 
-### 2 — Build and run (desktop, no GPIO)
+### 2 — Run (desktop / no GPIO)
 
 ```bash
-docker compose up --build -d
+docker compose -f docker-compose.prod.yml up -d
 ```
 
-### 2 — Build and run (Raspberry Pi, with GPIO)
+### 2 — Run (Raspberry Pi, with GPIO relays)
 
 ```bash
-docker compose -f docker-compose.yml -f docker-compose.pi.yml up --build -d
+docker compose -f docker-compose.prod.yml -f docker-compose.pi.yml up -d
 ```
 
 This overlay:
@@ -59,39 +64,39 @@ This overlay:
 ### 3 — Access the app
 
 - **Local**: `http://<pi-ip>:5000`
-- **Admin remote**: Via Tailscale `http://100.x.x.x:5000`
 - **Users remote**: Via ngrok URL shown in Admin Dashboard
+- **Admin remote**: Via Tailscale `http://100.x.x.x:5000` (optional backup)
 
-Log in as admin (credentials from `config/.env`). Set all other secrets (ngrok, iCal, SMTP) in the dashboard.
+Log in as `admin` / `admin12345` (or whatever you set in `config/.env`). Change the password immediately, then set all other secrets (ngrok token, iCal URL, SMTP) in the dashboard — no `.env` editing needed after this.
 
 ### Useful commands
 
 ```bash
 # Follow logs
-docker compose logs -f
+docker compose -f docker-compose.prod.yml logs -f
 
 # Stop the app
-docker compose down
+docker compose -f docker-compose.prod.yml down
 
-# Update after a git pull
-git pull
-docker compose up --build -d
+# Update to latest image
+docker compose -f docker-compose.prod.yml pull
+docker compose -f docker-compose.prod.yml up -d
 
 # Back up the database
-docker cp raspi-hotspot:/app/backend/data/raspi.db ./backup.db
+docker cp raspi-hotspot:/app/backend/instance/data/raspi.db ./backup.db
 
 # Restore a backup
-docker cp ./backup.db raspi-hotspot:/app/backend/data/raspi.db
+docker cp ./backup.db raspi-hotspot:/app/backend/instance/data/raspi.db
 ```
 
 ### Persistent data
 
-Docker named volumes keep your data safe across rebuilds:
+Docker named volumes keep your data safe across restarts and image updates:
 
 | Volume | Contents |
 |--------|----------|
-| `raspi-hotspot_raspi_data` | SQLite database |
-| `raspi-hotspot_raspi_uploads` | Door images |
+| `raspi_data` | SQLite database (`instance/data/raspi.db`) |
+| `raspi_uploads` | Door images uploaded via the dashboard |
 
 ---
 
@@ -160,21 +165,15 @@ sudo bash scripts/04-setup-ngrok.sh
 nano /home/pi/raspi-hotspot/config/.env
 ```
 
-Fill in all required values:
+Fill in the minimum required values:
 
 | Variable | Description |
 |----------|-------------|
 | `SECRET_KEY` | Random 64-char hex string |
 | `JWT_SECRET_KEY` | Random 64-char hex string |
 | `ADMIN_PASSWORD` | Your admin account password |
-| `NGROK_AUTHTOKEN` | From ngrok dashboard |
-| `NGROK_STATIC_DOMAIN` | Optional: your free static domain |
-| `GOOGLE_CREDENTIALS_FILE` | Path to OAuth2 JSON |
 
-Generate secret keys:
-```bash
-python3 -c "import secrets; print(secrets.token_hex(32))"
-```
+All other operational secrets (ngrok token, iCal URL, SMTP, cleaner password) are configured later in the admin dashboard — no `.env` editing needed after first boot.
 
 ---
 
@@ -198,9 +197,7 @@ After the app starts, access it using one of these paths:
 - **Admin (anywhere)**: Via Tailscale IP `http://100.x.x.x:5000`
 - **Users (anywhere)**: Via ngrok URL shown in Admin Dashboard
 
-Log in with the bootstrap admin credentials from `config/.env`, then:
-- create users manually in the admin dashboard, or
-- configure Google Calendar sync and trigger a sync
+Log in with the bootstrap admin credentials from `config/.env`, then configure everything else in the dashboard (iCal URL, ngrok, SMTP, guest password settings).
 
 ---
 

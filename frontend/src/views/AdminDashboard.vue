@@ -35,6 +35,7 @@
       <button :class="{active: tab==='calendar'}" @click="tab='calendar'">Calendar Sync</button>
       <button :class="{active: tab==='settings'}" @click="tab='settings'">ngrok Tunnel</button>
       <button :class="{active: tab==='email'}" @click="tab='email'">Email</button>
+      <button :class="{active: tab==='wifi'}" @click="tab='wifi'">WiFi Networks</button>
       <button :class="{active: tab==='doors'}" @click="tab='doors'">Door Images</button>
       <button :class="{active: tab==='buttonhistory'}" @click="tab='buttonhistory'">Button History</button>
     </div>
@@ -96,7 +97,6 @@
       <SettingsPanel :onlySection="'guest_password'" />
       <SettingsPanel :onlySection="'schedule'" />
       <SettingsPanel :onlySection="'cleaner'" />
-      <SettingsPanel :onlySection="'calendar_rules'" />
       <div class="btn-row mt">
         <button @click="triggerSync" :disabled="syncing" class="btn-primary">
           {{ syncing ? 'Syncing…' : 'Sync Now' }}
@@ -109,6 +109,13 @@
       <p v-if="syncError" class="error">{{ syncError }}</p>
       <p v-if="restartMsg" class="success">{{ restartMsg }}</p>
       <p v-if="restartError" class="error">{{ restartError }}</p>
+    </section>
+
+    <!-- WiFi Networks tab -->
+    <section v-if="tab === 'wifi'">
+      <h3>WiFi Networks</h3>
+      <p class="hint">Manage the networks your Raspberry Pi can connect to. Use this when moving the Pi to a new location with a different WiFi.</p>
+      <WifiManager />
     </section>
 
     <!-- Door Images tab -->
@@ -141,6 +148,7 @@ import api from '../api.js'
 import UserTable from '../components/UserTable.vue'
 import AuditLog from '../components/AuditLog.vue'
 import SettingsPanel from '../components/SettingsPanel.vue'
+import WifiManager from '../components/WifiManager.vue'
 
 // ...existing code...
 const tab = ref('users')

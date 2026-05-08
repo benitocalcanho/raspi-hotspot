@@ -1,11 +1,13 @@
-# Remote Access — Tailscale + ngrok
+# Remote Access — ngrok + Tailscale
 
 ## Architecture
 
 | Channel | Who | How |
 |---------|-----|-----|
-| **Tailscale** | Admin only | Private encrypted mesh VPN, works behind CGNAT |
-| **ngrok** | Regular users | Free HTTPS public tunnel to the Flask app |
+| **ngrok** | Admin + all users | Primary HTTPS public tunnel; URL shown in dashboard |
+| **Tailscale** | Admin (optional backup) | Private VPN for SSH/admin access when ngrok is unavailable |
+
+ngrok is the primary path for all remote access. Tailscale is recommended as a backup for SSH and admin dashboard access to the host machine only.
 
 ---
 
@@ -32,12 +34,11 @@ tailscale ip -4
 
 From **any device** in your Tailscale network:
 ```
-http://100.x.x.x:5000/admin
+http://100.x.x.x:5000
 ```
 
-The backend enforces that all `/api/admin/*` requests originate from the Tailscale subnet
-(`100.64.0.0/10`). Requests from any other IP are rejected with HTTP 403, even with a valid
-admin JWT.
+Tailscale is not required to access the admin dashboard — it is accessible via ngrok.
+Use Tailscale as a fallback for direct host access (SSH, recovery) when ngrok is unavailable.
 
 ### Tailscale Access Controls (Optional ACL)
 
@@ -72,17 +73,11 @@ domain).
 
 1. Create a free account at [ngrok.com](https://ngrok.com)
 2. Get your auth token: Dashboard → Getting Started → Your Authtoken
-3. Add to `config/.env`:
-   ```
-   NGROK_AUTHTOKEN=your_token_here
-   ```
+3. (Recommended) Reserve a free static domain: Dashboard → Cloud Edge → Domains → New Domain
+4. Paste your token (and optionally the static domain) in:
+   **Admin Dashboard → ngrok Tunnel** tab → Save
 
-4. (Recommended) Reserve a free static domain:
-   - Dashboard → Cloud Edge → Domains → New Domain
-   - Then set:
-   ```
-   NGROK_STATIC_DOMAIN=yourname.ngrok-free.app
-   ```
+The tunnel starts automatically and restarts on save. No app restart needed.
 
 ### How it works
 

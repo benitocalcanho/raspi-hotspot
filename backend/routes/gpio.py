@@ -4,6 +4,7 @@ pins that are assigned to them (future: per-pin ACL).
 """
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity, get_jwt
+from datetime import date
 
 from services import gpio_service
 from services.audit_service import log_event
@@ -71,6 +72,8 @@ def toggle_pin(pin_number):
 
     # Gather details for email
     user = User.query.get(user_id)
+    if user and user.valid_until and date.today() >= user.valid_until:
+        return jsonify({"error": "Your stay has ended."}), 403
     device = request.headers.get("User-Agent", "Unknown")
     button_label = getattr(pin, "label", f"Pin {pin_number}")
     action = "Unlocked" if pin.state else "Locked"

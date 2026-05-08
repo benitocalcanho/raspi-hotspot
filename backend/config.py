@@ -28,8 +28,8 @@ class Config:
 
     # ── JWT ──────────────────────────────────────────────────
     JWT_SECRET_KEY: str = os.environ["JWT_SECRET_KEY"]
-    JWT_ACCESS_TOKEN_EXPIRES: timedelta = timedelta(hours=1)
-    JWT_REFRESH_TOKEN_EXPIRES: timedelta = timedelta(days=7)
+    JWT_ACCESS_TOKEN_EXPIRES: timedelta = timedelta(minutes=15)
+    JWT_REFRESH_TOKEN_EXPIRES: timedelta = timedelta(hours=8)
 
     # ── CORS ─────────────────────────────────────────────────
     # In production limit to your actual origins

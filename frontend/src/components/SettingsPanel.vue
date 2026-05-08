@@ -8,26 +8,48 @@
         <p class="section-desc">{{ section.desc }}</p>
 
         <div v-for="key in section.keys" :key="key" class="field">
-          <label>
-            {{ schema[key]?.label }}
-            <span v-if="values[key]?.is_set && schema[key]?.secret" class="badge-set">● Set</span>
-            <span v-else-if="!values[key]?.is_set" class="badge-unset">Not set</span>
-          </label>
+          <!-- Special: guest password mode radio -->
+          <template v-if="key === 'CALENDAR_GUEST_PASSWORD_MODE'">
+            <label>Guest Password Source</label>
+            <div class="radio-group">
+              <label class="radio-label">
+                <input type="radio" v-model="form['CALENDAR_GUEST_PASSWORD_MODE']" value="fixed" />
+                Fixed password (type it below)
+              </label>
+              <label class="radio-label">
+                <input type="radio" v-model="form['CALENDAR_GUEST_PASSWORD_MODE']" value="from_event" />
+                Last word of calendar event title (e.g. last 4 digits of phone number)
+              </label>
+            </div>
+          </template>
 
-          <textarea
-            v-if="schema[key]?.multiline"
-            v-model="form[key]"
-            :placeholder="values[key]?.is_set
-              ? '(currently set — paste new JSON to replace)'
-              : 'Paste credentials.json content here'"
-            rows="5"
-          />
-          <input
-            v-else
-            :type="showAsPlaintext(key) ? 'text' : (schema[key]?.secret ? 'password' : 'text')"
-            v-model="form[key]"
-            :placeholder="inputPlaceholder(key)"
-          />
+          <!-- Special: fixed password — only show when mode is fixed -->
+          <template v-else-if="key === 'CALENDAR_GUEST_DEFAULT_PASSWORD'">
+            <div v-if="form['CALENDAR_GUEST_PASSWORD_MODE'] === 'fixed' || !form['CALENDAR_GUEST_PASSWORD_MODE']">
+              <label>Fixed Guest Password</label>
+              <input type="text" v-model="form[key]" :placeholder="inputPlaceholder(key)" />
+            </div>
+          </template>
+
+          <!-- All other fields -->
+          <template v-else>
+            <label>
+              {{ schema[key]?.label }}
+              <span v-if="!values[key]?.is_set" class="badge-unset">Not set</span>
+            </label>
+            <textarea
+              v-if="schema[key]?.multiline"
+              v-model="form[key]"
+              :placeholder="values[key]?.is_set ? '(currently set — paste new JSON to replace)' : 'Paste credentials.json content here'"
+              rows="5"
+            />
+            <input
+              v-else
+              type="text"
+              v-model="form[key]"
+              :placeholder="inputPlaceholder(key)"
+            />
+          </template>
         </div>
 
         <div class="section-footer">
@@ -47,16 +69,9 @@
 </template>
 
 <script setup>
-// Show email/SMTP fields as plaintext so user can see what they type
-function showAsPlaintext(key) {
-  return [
-    'SMTP_HOST',
-    'SMTP_PORT',
-    'SMTP_USER',
-    'SMTP_PASS',
-    'EMAIL_SENDER',
-    'EMAIL_RECIPIENT',
-  ].includes(key)
+// Always show fields as plaintext — this is the admin dashboard
+function showAsPlaintext(_key) {
+  return true
 }
 import { ref, onMounted, computed } from 'vue'
 import api from '../api.js'
@@ -71,7 +86,7 @@ const props = defineProps({
 const loading = ref(true)         // True while loading settings from API
 const schema = ref({})            // Settings schema (field definitions)
 const values = ref({})            // Current values for each setting
-const form = ref({})              // Form model for editing settings
+const form = ref({ CALENDAR_GUEST_PASSWORD_MODE: 'fixed' })  // Form model; mode pre-initialized so radio always has a default
 const saving = ref(null)          // Section ID currently being saved
 const saved = ref(null)           // Section ID that was just saved
 const sectionError = ref({})      // Error messages per section
@@ -132,8 +147,8 @@ const sections = computed(() => {
     guest_password: {
       id: 'guest_password',
       label: 'Guest Password',
-      desc: 'Default password for guests created from calendar events.',
-      keys: ['ICAL_GUEST_PASSWORD'],
+      desc: 'How the password is assigned to guests created from calendar events.',
+      keys: ['CALENDAR_GUEST_PASSWORD_MODE', 'CALENDAR_GUEST_DEFAULT_PASSWORD'],
     },
     schedule: {
       id: 'schedule',
@@ -165,10 +180,13 @@ onMounted(async () => {
     const { data } = await api.get('/admin/settings')
     schema.value = data.schema
     values.value = data.values
-    // Pre-populate non-secret fields with their current value
-    for (const [key, meta] of Object.entries(data.schema)) {
-      if (!meta.secret && data.values[key]?.value) {
-        form.value[key] = data.values[key].value
+    // Pre-populate all fields with their current value; default mode to 'fixed'
+    for (const [key, _meta] of Object.entries(data.schema)) {
+      const val = data.values[key]?.value
+      if (val) {
+        form.value[key] = val
+      } else if (key === 'CALENDAR_GUEST_PASSWORD_MODE') {
+        form.value[key] = 'fixed'
       }
     }
   } finally {
@@ -177,12 +195,8 @@ onMounted(async () => {
 })
 
 function inputPlaceholder(key) {
-  const meta = schema.value[key]
   const val = values.value[key]
-  if (meta?.secret) {
-    return val?.is_set ? '(keep current)' : 'Not configured'
-  }
-  return val?.value || 'Not configured'
+  return val?.is_set ? '' : 'Not configured'
 }
 
 async function saveSection(section) {
@@ -210,8 +224,13 @@ async function saveSection(section) {
   }
 
   if (Object.keys(payload).length === 0) {
-    saving.value = null
-    return
+    // Always include mode so a radio-only change still saves
+    if (section.keys.includes('CALENDAR_GUEST_PASSWORD_MODE')) {
+      payload['CALENDAR_GUEST_PASSWORD_MODE'] = form.value['CALENDAR_GUEST_PASSWORD_MODE'] || 'fixed'
+    } else {
+      saving.value = null
+      return
+    }
   }
 
   try {
@@ -219,9 +238,14 @@ async function saveSection(section) {
     // Refresh values so badges update
     const { data: fresh } = await api.get('/admin/settings')
     values.value = fresh.values
-    // Clear secret fields from form after save (don't leave tokens in DOM)
+    // Re-fill all fields from fresh values; never reset mode to empty
     for (const key of section.keys) {
-      if (schema.value[key]?.secret) {
+      const val = fresh.values[key]?.value
+      if (val) {
+        form.value[key] = val
+      } else if (key === 'CALENDAR_GUEST_PASSWORD_MODE') {
+        // keep whatever the user selected — it was just saved
+      } else {
         form.value[key] = ''
       }
     }
@@ -240,6 +264,8 @@ async function saveSection(section) {
 
 <style scoped>
 .settings-panel { max-width: 640px; }
+.radio-group { display: flex; flex-direction: column; gap: 8px; margin-top: 4px; }
+.radio-label { display: flex; align-items: center; gap: 8px; cursor: pointer; font-weight: normal; }
 .setting-section {
   background: white;
   border-radius: 10px;

@@ -185,6 +185,47 @@ def scan_networks() -> list[dict]:
     return sorted(networks, key=lambda n: n["signal"], reverse=True)
 
 
+def save_network_profile(ssid: str, passphrase: str) -> dict:
+    """
+    Save WiFi credentials to NetworkManager without connecting immediately.
+    NetworkManager will auto-connect when the network comes into range.
+    If a profile for this SSID already exists it is updated in place.
+    """
+    _validate_ssid(ssid)
+    _validate_passphrase(passphrase)
+
+    try:
+        # Check whether a profile with this SSID already exists
+        check = _run(["nmcli", "-t", "-f", "NAME", "con", "show"], check=False)
+        existing_names = [l.strip() for l in check.stdout.strip().splitlines()]
+    except FileNotFoundError:
+        raise ValueError("nmcli is not available on this system. This feature requires NetworkManager (Raspberry Pi OS).")
+
+    try:
+        if ssid in existing_names:
+            result = _run([
+                "nmcli", "connection", "modify", ssid,
+                "wifi-sec.key-mgmt", "wpa-psk",
+                "wifi-sec.psk", passphrase,
+            ], check=False)
+        else:
+            result = _run([
+                "nmcli", "connection", "add",
+                "type", "wifi",
+                "con-name", ssid,
+                "ssid", ssid,
+                "wifi-sec.key-mgmt", "wpa-psk",
+                "wifi-sec.psk", passphrase,
+            ], check=False)
+    except FileNotFoundError:
+        raise ValueError("nmcli is not available on this system. This feature requires NetworkManager (Raspberry Pi OS).")
+
+    if result.returncode != 0:
+        raise ValueError(result.stderr.strip() or f"Could not save profile for '{ssid}'")
+
+    return {"status": "saved", "ssid": ssid}
+
+
 def connect_to_network(ssid: str, passphrase: str) -> dict:
     """
     Connect wlan0 to a WiFi network via NetworkManager.
@@ -220,3 +261,38 @@ def get_connection_status() -> dict:
                 "connection": parts[2] if len(parts) > 2 else "",
             }
     return {"device": wifi_iface, "state": "unknown", "connection": ""}
+
+
+# ── Saved network management (admin dashboard) ────────────────────────────────
+
+def list_saved_networks() -> list[dict]:
+    """List WiFi connection profiles saved in NetworkManager."""
+    result = _run(
+        ["nmcli", "-t", "-f", "NAME,TYPE,ACTIVE", "con", "show"],
+        check=False,
+    )
+    saved = []
+    for line in result.stdout.strip().splitlines():
+        parts = line.split(":")
+        if len(parts) >= 2 and parts[1] in ("wifi", "802-11-wireless"):
+            saved.append({
+                "name": parts[0],
+                "active": parts[2].strip().lower() == "yes" if len(parts) > 2 else False,
+            })
+    return saved
+
+
+def delete_saved_network(name: str) -> dict:
+    """Delete a saved WiFi connection profile from NetworkManager."""
+    result = _run(["nmcli", "connection", "delete", name], check=False)
+    if result.returncode != 0:
+        raise ValueError(result.stderr.strip() or f"Could not delete '{name}'")
+    return {"status": "deleted", "name": name}
+
+
+def connect_saved_network(name: str) -> dict:
+    """Activate a previously saved WiFi connection profile."""
+    result = _run(["nmcli", "connection", "up", name], check=False)
+    if result.returncode != 0:
+        raise ValueError(result.stderr.strip() or f"Could not connect to '{name}'")
+    return {"status": "connected", "name": name}

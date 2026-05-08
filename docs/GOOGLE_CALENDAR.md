@@ -1,83 +1,91 @@
-# Google Calendar Integration
+# Calendar Integration (iCal)
 
 ## How It Works
 
-The Pi periodically polls your Google Calendar for events whose title matches a special
-format, and automatically creates user accounts from them.
+The app polls a private iCal URL daily to manage guest accounts automatically.
+No Google API credentials, no OAuth, no JSON files — just a URL you paste once in the dashboard.
 
-**Event title format:**
-```
-CREATE_USER | username | email@example.com | TemporaryPassword123!
-```
-
-The keyword `CREATE_USER` is configurable via `CALENDAR_USER_CREATION_KEYWORD` in `.env`.
+**Supported providers:** Google Calendar, Apple Calendar, Outlook/Office 365, Fastmail, and any calendar that exports a private iCal feed.
 
 ---
 
-## Setup: Google Cloud Project
+## Setup
 
-### 1. Create a Google Cloud Project
+### 1 — Get your private iCal URL
 
-1. Go to [console.cloud.google.com](https://console.cloud.google.com)
-2. Create a new project (e.g. `raspi-hotspot`)
+**Google Calendar:**
+1. Open [calendar.google.com](https://calendar.google.com)
+2. Click the three-dot menu next to the calendar → **Settings and sharing**
+3. Scroll to **Secret address in iCal format**
+4. Copy the URL (starts with `https://calendar.google.com/calendar/ical/...`)
 
-### 2. Enable the Google Calendar API
+**Apple Calendar (iCloud):**
+1. Go to [icloud.com/calendar](https://icloud.com/calendar)
+2. Click the share icon next to the calendar → enable **Public Calendar**
+3. Copy the webcal:// URL and change `webcal://` to `https://`
 
-1. Navigate to **APIs & Services → Library**
-2. Search for `Google Calendar API`
-3. Click **Enable**
-
-### 3. Create OAuth 2.0 Credentials
-
-1. Go to **APIs & Services → Credentials**
-2. Click **Create Credentials → OAuth client ID**
-3. Application type: **Desktop app**
-4. Download the JSON file
-5. Copy it to your Pi:
-
-```bash
-scp ~/Downloads/credentials.json pi@raspi-hotspot.local:~/raspi-hotspot/config/
-```
-
-### 4. Configure `.env`
-
-```env
-GOOGLE_CREDENTIALS_FILE=/home/pi/raspi-hotspot/config/credentials.json
-GOOGLE_TOKEN_FILE=/home/pi/raspi-hotspot/config/token.json
-GOOGLE_CALENDAR_ID=primary
-CALENDAR_USER_CREATION_KEYWORD=CREATE_USER
-CALENDAR_SYNC_INTERVAL=300
-```
-
-### 5. Authorize on First Run
-
-The first time the calendar sync runs, you need to authorize it:
-
-```bash
-cd /home/pi/raspi-hotspot/backend
-source ../.venv/bin/activate
-python3 -c "from services.calendar_service import sync_calendar; from app import create_app; sync_calendar(create_app())"
-```
-
-A browser will open (or a URL printed). Log in with the Google account that owns the
-calendar. This saves `token.json` — no re-authorization needed after this.
+**Outlook / Office 365:**
+1. Open Outlook → Calendar → right-click the calendar → **Share** → **Publish to web**
+2. Copy the ICS link
 
 ---
 
-## Usage Example
+### 2 — Paste the URL in the dashboard
 
-Add this event to Google Calendar:
+Admin Dashboard → **Calendar Sync** tab → **Google Calendar (iCal)** section → paste URL → **Save**.
 
-| Field | Value |
-|-------|-------|
-| Title | `CREATE_USER \| johndoe \| john@company.com \| Welcome2024!` |
-| Date | Any future date |
+No restart required. The next scheduled sync will use the new URL.
 
-Within `CALENDAR_SYNC_INTERVAL` seconds (default 5 minutes), the Pi will:
-1. Detect the event
-2. Create `johndoe` account with the given email and password
-3. Log the creation in the audit trail
-4. Skip the event on future syncs (tracked by calendar event ID)
+---
+
+## Calendar Event Format
+
+The **first word** of the event title becomes the guest's username (lowercased, special characters replaced with `_`).
+
+**Guest password** is set by the dashboard setting under **Guest Password**:
+
+| Mode | Behaviour |
+|------|-----------|
+| **Fixed password** | All guests get the same password configured in the dashboard |
+| **Last word of event title** | The last word of the title is used as the password — useful for using the last 4 digits of the guest's phone number |
+
+**Example event titles:**
+
+| Title | Username | Password (last-word mode) |
+|-------|----------|--------------------------|
+| `Alice 0612` | `alice` | `0612` |
+| `Smith family vacation 8523` | `smith` | `8523` |
+| `john` | `john` | — (use fixed password mode) |
+
+---
+
+## Sync Schedule
+
+Two cron jobs run daily (times configurable in dashboard):
+
+| Time | Action |
+|------|--------|
+| `CHECKOUT_TIME` (default 12:00) | Deletes all calendar-created guest accounts, reactivates cleaner |
+| `CHECKIN_TIME` (default 14:00) | Fetches iCal, finds today's active event, creates guest account, deactivates cleaner |
+
+An event is **active today** when: `DTSTART ≤ today < DTEND` (iCal DTEND is exclusive).
+
+---
+
+## Manual Sync
+
+Admin Dashboard → **Calendar Sync** tab → **Sync Now** button.
+
+Useful after adding a new event or changing the iCal URL.
+
+---
+
+## Changing Schedule Times
+
+Admin Dashboard → **Calendar Sync** tab → **Guest Schedule** section → update times → **Save** → **Apply Schedule Changes**.
+
+Changes take effect immediately without restarting the app.
+
 
 ---
 

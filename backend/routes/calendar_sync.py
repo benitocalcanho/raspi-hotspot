@@ -18,8 +18,8 @@ calendar_bp = Blueprint("calendar", __name__)
 @require_roles("admin")
 def trigger_sync():
     """Manually trigger a Google Calendar sync."""
-    from flask import current_app as app
+    from flask import current_app
     admin_id = int(get_jwt_identity())
-    created = sync_calendar(app._get_current_object())
+    created = sync_calendar(current_app)
     log_event("calendar_sync_triggered", user_id=admin_id, detail={"users_created": created})
     return jsonify({"users_created": created}), 200

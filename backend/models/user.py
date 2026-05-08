@@ -32,6 +32,8 @@ class User(db.Model):
     created_by = db.Column(db.String(50), nullable=False, default="manual")
     # Optional reference to the Google Calendar event ID that created this user
     calendar_event_id = db.Column(db.String(200), nullable=True)
+    # Guests cannot log in on or after this date (set from calendar event DTEND)
+    valid_until = db.Column(db.Date, nullable=True)
 
     audit_logs = db.relationship("AuditLog", backref="user", lazy="dynamic", cascade="all, delete-orphan")
 
@@ -61,6 +63,7 @@ class User(db.Model):
             "is_active": self.is_active,
             "created_at": self.created_at.isoformat(),
             "created_by": self.created_by,
+            "valid_until": self.valid_until.isoformat() if self.valid_until else None,
         }
 
     def __repr__(self):

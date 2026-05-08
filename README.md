@@ -1,8 +1,6 @@
 
 # Raspi Hotspot — Airbnb Guest Access System
 
-**Note:** Docker deployment is not supported yet. Please follow the manual installation instructions below. All configuration is done via the web dashboard after install—no .env editing or Docker needed.
-
 A plug-and-play **Raspberry Pi** web app for short-term rental hosts. Guests connect to your local network and get a simple phone-friendly page to unlock building and apartment doors. The admin dashboard manages users, configures all operational secrets via a GUI, and syncs guest accounts automatically from a private iCal URL — no API credentials or .env editing required after install.
 
 ## Features
@@ -11,8 +9,8 @@ A plug-and-play **Raspberry Pi** web app for short-term rental hosts. Guests con
 - **Automatic guest accounts** — Syncs from a private iCal URL; guest created at check-in time, deleted at check-out
 - **Calendar-free fallback** — Manual user creation still works
 - **Role-based access** — `admin` / `user` / `cleaner` / `guest`
-- **Admin dashboard** — User management, audit log, calendar sync, schedule settings, door image uploads
-- **Settings GUI** — Paste all secrets (iCal URL, ngrok token, WiFi, SMTP, etc.) in the browser — no SSH or .env editing needed after initial setup
+- **Admin dashboard** — User management, audit log, calendar sync, schedule settings, WiFi network management, door image uploads
+- **Settings GUI** — Paste all secrets (iCal URL, ngrok token, SMTP, etc.) in the browser — no SSH or .env editing needed after initial setup
 - **Audit log** — Every login, creation, and deletion recorded with IP and device info
 - **GPIO relay control** — Unlock door buttons trigger configurable GPIO pins for 5 seconds
 - **Remote access** — Admin dashboard via ngrok public URL (primary); Tailscale as backup for admin access if ngrok is unavailable
@@ -30,11 +28,12 @@ A plug-and-play **Raspberry Pi** web app for short-term rental hosts. Guests con
                      ┌──────────────────────────────────────┐
                      │           Raspberry Pi               │
                      │                                      │
-  Admin ──Tailscale──▶  Flask API (port 5000)              │
+  Admin ────ngrok────▶  Flask API (port 5000)              │
                      │  ├── /api/auth                       │
   Guest ────ngrok────▶  ├── /api/admin   (admin only)      │
                      │  ├── /api/user    (all roles)        │
-                     │  ├── /api/uploads (door images)      │
+  Admin ─Tailscale──▶  ├── /api/uploads (door images)      │
+  (backup SSH)       │  ├── /api/wifi    (WiFi management)  │
                      │  ├── /api/gpio    (relay control)    │
                      │  └── /api/calendar (iCal sync)       │
                      │                                      │
@@ -52,28 +51,28 @@ A plug-and-play **Raspberry Pi** web app for short-term rental hosts. Guests con
 raspi-hotspot/
 ├── backend/
 │   ├── app.py                  # Flask application factory + SPA serving
-│   ├── config.py               # Only non-sensitive defaults; all secrets in DB
+│   ├── config.py               # Non-sensitive defaults; all secrets in DB
 │   ├── requirements.txt        # Python dependencies
 │   ├── uploads/                # Door images uploaded via admin dashboard
 │   ├── models/
-│   │   ├── user.py             # User model (role, created_by, is_active)
+│   │   ├── user.py             # User model (role, created_by, is_active, valid_until)
 │   │   ├── setting.py          # DB-backed key/value store for all runtime secrets
 │   │   └── audit_log.py        # Login/event audit trail
 │   ├── routes/
 │   │   ├── auth.py             # Login, logout, /me — case-insensitive
-│   │   ├── admin.py            # User CRUD, settings PATCH, scheduler restart (all settings from DB)
+│   │   ├── admin.py            # User CRUD, settings PATCH, scheduler restart
 │   │   ├── user.py             # Dashboard endpoint (all roles)
 │   │   ├── uploads.py          # Door image upload + serve
 │   │   ├── calendar_sync.py    # Manual sync trigger
-│   │   ├── wifi.py             # WiFi status
+│   │   ├── wifi.py             # WiFi status (hotspot) + admin WiFi management
 │   │   └── gpio.py             # GPIO pin toggle (optional, guarded by ENABLE_GPIO)
 │   ├── services/
 │   │   ├── calendar_service.py # iCal fetch, guest create/delete, APScheduler
 │   │   ├── gpio_service.py     # gpiozero abstraction with mock fallback
 │   │   ├── audit_service.py    # Log creation helpers
-│   │   └── wifi_service.py     # nmcli wrappers
+│   │   └── wifi_service.py     # nmcli wrappers (connect, save, list, delete)
 │   └── utils/
-│       └── decorators.py       # require_roles, tailscale_required
+│       └── decorators.py       # require_roles
 ├── frontend/
 │   ├── src/
 │   │   ├── App.vue             # Root — NavBar hidden for guests
@@ -81,44 +80,37 @@ raspi-hotspot/
 │   │   ├── views/
 │   │   │   ├── Login.vue
 │   │   │   ├── GuestDashboard.vue   # Two door cards, full-screen, mobile-first
-│   │   │   ├── AdminDashboard.vue   # Tabs: Users, Audit, Calendar, Settings, Door Images
+│   │   │   ├── AdminDashboard.vue   # Tabs: Users, Audit, Calendar, ngrok, Email, WiFi, Doors
 │   │   │   ├── CleanerDashboard.vue
 │   │   │   └── UserDashboard.vue
 │   │   ├── components/
 │   │   │   ├── NavBar.vue
-│   │   │   ├── SettingsPanel.vue    # iCal URL, schedule times, ngrok token
+│   │   │   ├── SettingsPanel.vue    # All admin settings sections
+│   │   │   ├── WifiManager.vue      # Saved networks + add/remove
 │   │   │   ├── UserTable.vue
-│   │   │   └── AuditLog.vue
+│   │   │   ├── AuditLog.vue
+│   │   │   ├── GpioPanel.vue
+│   │   │   └── ButtonHistoryTable.vue
 │   │   ├── router/index.js          # Role-gated routes
 │   │   └── stores/auth.js           # Pinia auth store
 │   ├── dist/                        # Built SPA (served by Flask)
 │   └── vite.config.js
 ├── scripts/                    # One-time Raspberry Pi setup scripts
 ├── systemd/                    # Systemd service units
-└── tests/                      # Backend tests
+└── config/
+    ├── .env                    # Defaults pre-filled; edit SECRET_KEY for production
+    └── .env.example            # Template
 ```
 
 ## Quick Install on Raspberry Pi
 
-**Option A — One command (recommended)**
+**Option A — Docker (recommended)**
 
-The pre-built image is published to GitHub Container Registry on every push to `main`.
-No build tools, Node.js, or Python needed on the Pi — Docker just pulls the image.
-
-```bash
-curl -fsSL https://raw.githubusercontent.com/benitocalcanho/raspi-hotspot/main/install.sh | bash
-```
-
-The script installs Docker if needed, downloads the compose files, opens `config/.env` for
-your secrets, then pulls and starts the container (auto-detects Pi for GPIO).
-
-**Option B — Manual Docker**
+No build tools, Node.js, or Python needed on the Pi.
 
 ```bash
 git clone https://github.com/benitocalcanho/raspi-hotspot.git
 cd raspi-hotspot
-cp config/.env.example config/.env
-nano config/.env   # set SECRET_KEY, JWT_SECRET_KEY, ADMIN_PASSWORD
 
 # Desktop / no GPIO:
 docker compose -f docker-compose.prod.yml up -d
@@ -127,18 +119,9 @@ docker compose -f docker-compose.prod.yml up -d
 docker compose -f docker-compose.prod.yml -f docker-compose.pi.yml up -d
 ```
 
-**Option C — Build from source (developers)**
+Log in at `http://<pi-ip>:5000` with `admin` / `admin12345`. Change the password, then configure everything else in the dashboard.
 
-```bash
-git clone https://github.com/benitocalcanho/raspi-hotspot.git
-cd raspi-hotspot
-cp config/.env.example config/.env && nano config/.env
-
-docker compose up --build -d                                                        # desktop
-docker compose -f docker-compose.yml -f docker-compose.pi.yml up --build -d        # Pi
-```
-
-**Option D — Manual Install (no Docker):**
+**Option B — Manual Install (no Docker)**
 
 ```bash
 git clone https://github.com/benitocalcanho/raspi-hotspot.git
@@ -146,63 +129,18 @@ cd raspi-hotspot
 sudo bash scripts/01-setup-pi.sh
 ```
 
----
-
-### Prerequisites
-
-- Raspberry Pi (any model with network access)
-- A private iCal URL (from your calendar provider; Google, Apple, Outlook, etc.)
-
-
-### 1 — Install dependencies (Manual Only)
-
-```bash
-git clone https://github.com/YOUR_USER/raspi-hotspot.git
-cd raspi-hotspot
-
-
-# Backend
-cd backend
-python3 -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
-
-# Frontend
-cd ../frontend
-npm install
-npm run build
-```
-
-
-### 2 — Run
-
-```bash
-cd backend
-source .venv/bin/activate
-python app.py
-```
-
-
-Open **http://<pi-ip>:5000** — log in as admin (default credentials: admin / admin12345).
-
-### 3 — Configure all settings in the browser
-
-
-Log in as admin → **Settings** tab → paste your iCal URL, ngrok token, WiFi, SMTP, and any other secrets. All operational settings are stored in the database and take effect immediately. No .env or SSH needed after install.
+See [docs/INSTALLATION.md](docs/INSTALLATION.md) for full instructions.
 
 ## Environment Variables
 
-
-All operational secrets (iCal URL, ngrok, WiFi, SMTP, etc.) are now managed via the dashboard and stored in the database. The only environment variables you may need are for initial admin bootstrap or development:
+Only the minimum bootstrap variables need to be in `config/.env`. Everything else is set in the dashboard.
 
 | Variable | Default | Description |
 |---|---|---|
-
-| `SECRET_KEY` | random on each start | Flask/JWT secret — **set a fixed value in production** |
-| `ADMIN_USERNAME` | `admin` | Initial admin username (used only if no admin exists) |
-| `ADMIN_PASSWORD` | `admin12345` | Initial admin password (used only if no admin exists) |
-
-After first login, set all other secrets in the dashboard. No .env editing required for normal operation.
+| `SECRET_KEY` | `raspi-hotspot-default-secret-key-change-me` | Flask/JWT secret — **change in production** |
+| `JWT_SECRET_KEY` | `raspi-hotspot-default-jwt-key-change-me` | JWT signing key — **change in production** |
+| `ADMIN_USERNAME` | `admin` | Bootstrap admin username |
+| `ADMIN_PASSWORD` | `admin12345` | Bootstrap admin password |
 
 ## Calendar Guest Sync
 

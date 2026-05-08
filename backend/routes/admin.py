@@ -140,8 +140,14 @@ SETTINGS_SCHEMA = {
         "multiline": False,
     },
     # Only iCal and general calendar settings remain
+    "CALENDAR_GUEST_PASSWORD_MODE": {
+        "label": "Guest Password Mode",
+        "section": "calendar_rules",
+        "secret": False,
+        "multiline": False,
+    },
     "CALENDAR_GUEST_DEFAULT_PASSWORD": {
-        "label": "Guest Default Password",
+        "label": "Guest Default Password (used when mode is 'fixed')",
         "section": "calendar_rules",
         "secret": True,
         "multiline": False,
@@ -356,7 +362,7 @@ def restart_scheduler():
     except Exception:
         pass
 
-    start_scheduler(current_app._get_current_object())
+    start_scheduler(current_app)
     log_event("scheduler_restarted", user_id=admin_id, detail={
         "checkout": current_app.config.get("CHECKOUT_TIME"),
         "checkin": current_app.config.get("CHECKIN_TIME"),
@@ -383,8 +389,7 @@ def get_settings():
         raw = db_val if db_val is not None else ""
         values[key] = {
             "is_set": bool(raw),
-            # Never send secret values to the browser
-            "value": None if meta["secret"] else raw,
+            "value": raw,
         }
 
     return jsonify({"schema": SETTINGS_SCHEMA, "values": values}), 200
