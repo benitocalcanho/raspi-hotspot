@@ -46,12 +46,14 @@ WORKDIR /app
 # gcc        : needed to compile any Python C extensions (bcrypt, cryptography)
 # libffi-dev  : required by cffi (bcrypt dependency)
 # libc6-dev   : C stdlib headers required to compile cffi from source on armv7l
+# network-manager : provides nmcli for WiFi management via host NetworkManager (Pi)
 RUN apt-get update && apt-get install -y --no-install-recommends \
     bash \
     procps \
     gcc \
     libffi-dev \
     libc6-dev \
+    network-manager \
     && rm -rf /var/lib/apt/lists/*
 
 # ── Python dependencies ──────────────────────────────────────────────────────

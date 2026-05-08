@@ -57,9 +57,11 @@ docker compose -f docker-compose.prod.yml -f docker-compose.pi.yml up -d
 ```
 
 This overlay:
-- Installs `gpiozero` inside the image
-- Sets `ENABLE_GPIO=true`
-- Maps `/dev/gpiomem` into the container for relay hardware access
+- Installs `network-manager` (nmcli) inside the image
+- Mounts the host D-Bus socket (`/var/run/dbus`) so the container's `nmcli` talks directly to the Pi's NetworkManager — this is what makes the **WiFi Networks** tab work from the dashboard
+- Sets `ENABLE_GPIO=true` and maps `/dev/gpiomem` for relay hardware access
+
+> **Always use the Pi overlay on a Raspberry Pi.** Using only `docker-compose.prod.yml` disables WiFi management and GPIO.
 
 ### 3 — Access the app
 
