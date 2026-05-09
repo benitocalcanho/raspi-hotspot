@@ -17,16 +17,39 @@ _tunnel = None
 _tunnel_lock = threading.Lock()
 
 
+def _is_tunnel_alive() -> bool:
+    """Check whether the cached tunnel is still active in ngrok."""
+    if _tunnel is None:
+        return False
+    try:
+        from pyngrok import ngrok
+        active_urls = {t.public_url for t in ngrok.get_tunnels()}
+        return _tunnel.public_url in active_urls
+    except Exception:
+        return False
+
+
 def start_tunnel(port: int = 5000) -> Optional[str]:
     """
     Start (or return existing) ngrok HTTPS tunnel to Flask.
+    If the tunnel has dropped (e.g. after a network reconnect) it is
+    automatically restarted.
     Returns the public URL or None on failure.
     """
     global _tunnel
 
     with _tunnel_lock:
-        if _tunnel is not None:
+        if _tunnel is not None and _is_tunnel_alive():
             return _tunnel.public_url
+        # Tunnel is stale — clear it so we reconnect below
+        if _tunnel is not None:
+            logger.info("ngrok tunnel appears dead, restarting...")
+            try:
+                from pyngrok import ngrok
+                ngrok.disconnect(_tunnel.public_url)
+            except Exception:
+                pass
+            _tunnel = None
 
         try:
             from pyngrok import ngrok, conf
@@ -69,6 +92,6 @@ def stop_tunnel() -> None:
 
 def get_public_url() -> Optional[str]:
     """Return the active public URL without starting a new tunnel."""
-    if _tunnel is not None:
+    if _tunnel is not None and _is_tunnel_alive():
         return _tunnel.public_url
     return None
