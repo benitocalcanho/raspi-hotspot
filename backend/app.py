@@ -68,7 +68,6 @@ def create_app(config_class=Config):
         _migrate_add_valid_until(app)  # must run before any ORM queries
         _load_db_settings(app)
         _seed_admin(app)
-        _seed_cleaner(app)
         _migrate_calendar_users_to_guest(app)
 
         # Stop any running ngrok tunnels/processes before starting a new tunnel
@@ -93,6 +92,9 @@ def create_app(config_class=Config):
                 app.logger.info("ngrok authtoken not set; tunnel not started.")
         except Exception as exc:
             app.logger.error(f"Failed to start ngrok tunnel on startup: {exc}")
+
+        # Background watchdog: restart ngrok tunnel if it drops (e.g. after WiFi switch)
+        _start_ngrok_watchdog(app)
 
     if app.config.get("CALENDAR_SYNC_ENABLED", True):
         should_start_scheduler = (not app.debug) or os.environ.get("WERKZEUG_RUN_MAIN") == "true"
@@ -123,6 +125,30 @@ def create_app(config_class=Config):
         return _spa_index(app)
 
     return app
+
+
+def _start_ngrok_watchdog(app):
+    """Start a background thread that restarts the ngrok tunnel if it drops."""
+    import threading
+
+    def watchdog():
+        while True:
+            time.sleep(60)
+            try:
+                with app.app_context():
+                    authtoken = app.config.get("NGROK_AUTHTOKEN", "")
+                    if not authtoken:
+                        continue
+                    from services import ngrok_service
+                    port = int(app.config.get("APP_PORT", 5000))
+                    if not ngrok_service._is_tunnel_alive():
+                        app.logger.info("ngrok watchdog: tunnel dead, restarting...")
+                        ngrok_service.start_tunnel(port=port)
+            except Exception as exc:
+                app.logger.warning(f"ngrok watchdog error: {exc}")
+
+    t = threading.Thread(target=watchdog, daemon=True)
+    t.start()
 
 
 def _spa_index(app):
@@ -162,39 +188,6 @@ def _seed_admin(app):
         db.session.add(admin)
         db.session.commit()
         app.logger.info("Bootstrap admin account created.")
-
-
-def _seed_cleaner(app):
-    """Create the cleaner account if it doesn't exist."""
-    cleaner_username = os.getenv("CLEANER_USERNAME", "cleaner")
-    cleaner_password = os.getenv("CLEANER_PASSWORD", "cleaner12345")
-    existing = User.query.filter_by(username=cleaner_username).first()
-    if existing:
-        changed = False
-        if existing.role != "cleaner":
-            existing.role = "cleaner"
-            changed = True
-        if not existing.is_active:
-            existing.is_active = True
-            changed = True
-        if changed:
-            db.session.commit()
-            app.logger.info("Cleaner account updated to cleaner role.")
-        return
-
-    cleaner = User(
-        username=cleaner_username,
-        email=User.build_internal_email(cleaner_username),
-        role="cleaner",
-        created_by="manual",
-    )
-    try:
-        cleaner.set_password(cleaner_password)
-        db.session.add(cleaner)
-        db.session.commit()
-        app.logger.info("Cleaner account created.")
-    except ValueError as exc:
-        app.logger.error("Failed to create cleaner account: %s", exc)
 
 
 def _migrate_calendar_users_to_guest(app):

@@ -207,6 +207,9 @@ def save_network_profile(ssid: str, passphrase: str) -> dict:
                 "nmcli", "connection", "modify", ssid,
                 "wifi-sec.key-mgmt", "wpa-psk",
                 "wifi-sec.psk", passphrase,
+                "connection.autoconnect", "yes",
+                "connection.autoconnect-priority", "10",
+                "connection.autoconnect-retries", "0",
             ], check=False)
         else:
             result = _run([
@@ -216,6 +219,9 @@ def save_network_profile(ssid: str, passphrase: str) -> dict:
                 "ssid", ssid,
                 "wifi-sec.key-mgmt", "wpa-psk",
                 "wifi-sec.psk", passphrase,
+                "connection.autoconnect", "yes",
+                "connection.autoconnect-priority", "10",
+                "connection.autoconnect-retries", "0",
             ], check=False)
     except FileNotFoundError:
         raise ValueError("nmcli is not available on this system. This feature requires NetworkManager (Raspberry Pi OS).")

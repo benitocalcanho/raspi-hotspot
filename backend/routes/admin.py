@@ -386,7 +386,12 @@ def get_settings():
     values = {}
     for key, meta in SETTINGS_SCHEMA.items():
         db_val = Setting.get(key)
-        raw = db_val if db_val is not None else ""
+        if db_val is not None:
+            raw = db_val
+        else:
+            # Fall back to app.config (populated from env vars) so defaults are
+            # visible on first install before anything has been saved via the dashboard.
+            raw = current_app.config.get(key, "") or ""
         values[key] = {
             "is_set": bool(raw),
             "value": raw,

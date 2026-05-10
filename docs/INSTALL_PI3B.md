@@ -8,7 +8,7 @@ It serves as a repeatable reference for future installs.
 ## Hardware
 
 - Raspberry Pi 3 Model B+
-- MicroSD card (Class 10 recommended, 16 GB+)
+- MicroSD card (Class 10 recommended, **16 GB+**; 8 GB is too small with Pi OS Full)
 - Power supply (5V / 2.5A minimum)
 
 ---
@@ -17,7 +17,10 @@ It serves as a repeatable reference for future installs.
 
 **Tool:** Raspberry Pi Imager
 
-**OS:** Raspberry Pi OS (64-bit) — full desktop version
+**OS:** **Raspberry Pi OS Lite (64-bit)** — headless, no desktop
+
+> ⚠️ Do **not** use the Full (desktop) version on an 8 GB card — it fills ~6 GB and leaves no room for Docker images.
+> Lite uses ~1.5 GB, leaving ~4.5 GB free.
 
 **Imager advanced options configured:**
 - WiFi SSID and password
@@ -38,17 +41,32 @@ Flash to SD card, insert into Pi, power on.
 sudo apt update && sudo apt upgrade -y
 ```
 
-Expand the filesystem:
-```bash
-sudo raspi-config
-# → Advanced Options → Expand Filesystem → Finish → Reboot
-```
+> ℹ️ Pi OS Lite expands the filesystem automatically on first boot. No manual step needed.
 
-**Result:** Filesystem expanded to full SD card capacity. ✅
+**Result:** ✅ (automatic)
 
 ---
 
-## Step 3 — Install Docker
+## Step 3 — Prevent Sleep / Suspend
+
+The Pi must never sleep — it runs 24/7 as a server.
+
+```bash
+# Disable screen blanking (console)
+sudo raspi-config nonint do_blanking 1
+
+# Disable system suspend/sleep/hibernate
+sudo systemctl mask sleep.target suspend.target hibernate.target hybrid-sleep.target
+
+# Don't wait for network on boot (faster startup, avoids boot hang)
+sudo systemctl disable NetworkManager-wait-online.service
+```
+
+**Result:** ✅
+
+---
+
+## Step 4 — Install Docker
 
 Created a directory for Docker-related files:
 ```bash
@@ -77,7 +95,7 @@ docker compose version
 
 ---
 
-## Step 4 — Clone the Project
+## Step 5 — Clone the Project
 
 ```bash
 cd ~/docker
@@ -89,7 +107,7 @@ cd raspi-hotspot
 
 ---
 
-## Step 5 — Start the App
+## Step 6 — Start the App
 
 On the Pi, always use the Pi overlay (`docker-compose.pi.yml`). This enables:
 - GPIO relay control (`/dev/gpiomem`)
@@ -112,7 +130,7 @@ docker compose -f docker-compose.prod.yml logs -f
 
 ---
 
-## Step 6 — Access the App
+## Step 7 — Access the App
 
 Find the Pi's IP address:
 ```bash
@@ -132,7 +150,7 @@ Default login: `admin` / `admin12345`
 
 ---
 
-## Step 7 — Configure in the Dashboard
+## Step 8 — Configure in the Dashboard
 
 All secrets are configured via the Admin Dashboard — no SSH or `.env` editing needed:
 
@@ -150,7 +168,7 @@ All secrets are configured via the Admin Dashboard — no SSH or `.env` editing 
 
 ---
 
-## Step 8 — (Optional) GPIO Relay Control
+## Step 9 — (Optional) GPIO Relay Control
 
 If you have relay hardware connected to the Pi GPIO pins, stop the container and restart with the Pi overlay:
 
