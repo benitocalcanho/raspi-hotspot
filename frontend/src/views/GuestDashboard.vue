@@ -68,26 +68,17 @@ async function unlock(door) {
   progress.value = 100
   const duration = DURATION
 
-  // Log virtual button press to backend
-  try {
-    console.log('Attempting to log button press:', door)
-    await api.post('/admin/audit/button_press', { button: door })
-  } catch (e) {
-    console.error('Button press log failed:', e)
-  }
+  // Fire-and-forget: log button press and trigger GPIO without blocking the UI
+  api.post('/admin/audit/button_press', { button: door }).catch(() => {})
 
   // Trigger GPIO relay: building → pin 17, apartment → pin 27
   const pinMap = { building: 17, apartment: 27 }
   const pin = pinMap[door]
   if (pin) {
-    try {
-      await api.post(`/gpio/pins/${pin}/toggle`)   // ON
-      setTimeout(async () => {
-        try { await api.post(`/gpio/pins/${pin}/toggle`) } catch (_) {}  // OFF
-      }, duration)
-    } catch (e) {
-      console.error('GPIO trigger failed:', e)
-    }
+    api.post(`/gpio/pins/${pin}/set`, { state: true }).catch(() => {})
+    setTimeout(() => {
+      api.post(`/gpio/pins/${pin}/set`, { state: false }).catch(() => {})
+    }, duration)
   }
 
   const start = performance.now()
