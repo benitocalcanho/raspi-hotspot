@@ -17,7 +17,16 @@ gpio_bp = Blueprint("gpio", __name__)
 @jwt_required()
 def list_pins():
     pins = gpio_service.get_all_pins()
-    return jsonify([p.to_dict() for p in pins]), 200
+    # Sync live hardware state into DB before returning so the UI is accurate
+    result = []
+    for p in pins:
+        if p.direction == "output":
+            try:
+                gpio_service.read_pin_state(p.pin_number)  # syncs live→DB
+            except Exception:
+                pass
+        result.append(p.to_dict())
+    return jsonify(result), 200
 
 
 @gpio_bp.route("/pins", methods=["POST"])
