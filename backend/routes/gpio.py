@@ -89,6 +89,24 @@ def toggle_pin(pin_number):
     return jsonify(pin.to_dict()), 200
 
 
+@gpio_bp.route("/pins/<int:pin_number>/set", methods=["POST"])
+@jwt_required()
+def set_pin(pin_number):
+    """Explicitly set a pin to ON or OFF. Used for reliable pulse control."""
+    data = request.get_json(silent=True) or {}
+    state = data.get("state")
+    if state is None:
+        return jsonify({"error": "state (true/false) is required."}), 400
+    try:
+        pin = gpio_service.set_pin_state(pin_number, bool(state))
+    except LookupError as exc:
+        return jsonify({"error": str(exc)}), 404
+    except ValueError as exc:
+        return jsonify({"error": str(exc)}), 400
+    return jsonify(pin.to_dict()), 200
+
+
+
 @gpio_bp.route("/pins/<int:pin_number>", methods=["DELETE"])
 @jwt_required()
 @require_roles("admin")
