@@ -19,6 +19,8 @@ services:
     environment:
       # Enable the GPIO API routes and hardware relay output
       ENABLE_GPIO: "true"
+      # Use real gpiozero hardware driver (overrides mock in prod compose)
+      GPIO_MODE: gpiozero
 
     devices:
       # Pass the GPIO memory device so gpiozero can drive relay pins
