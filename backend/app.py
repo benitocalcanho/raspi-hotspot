@@ -68,6 +68,7 @@ def create_app(config_class=Config):
         _migrate_add_valid_until(app)  # must run before any ORM queries
         _load_db_settings(app)
         _seed_admin(app)
+        _seed_gpio(app)
         _migrate_calendar_users_to_guest(app)
 
         # Stop any running ngrok tunnels/processes before starting a new tunnel
@@ -188,6 +189,19 @@ def _seed_admin(app):
         db.session.add(admin)
         db.session.commit()
         app.logger.info("Bootstrap admin account created.")
+
+
+def _seed_gpio(app):
+    """Create default relay pins on first install if none exist."""
+    from models.gpio_pin import GpioPin
+    if GpioPin.query.count() == 0:
+        defaults = [
+            GpioPin(pin_number=17, label="Street Door", direction="output", state=False),
+            GpioPin(pin_number=27, label="Apartment Door", direction="output", state=False),
+        ]
+        db.session.add_all(defaults)
+        db.session.commit()
+        app.logger.info("Default GPIO relay pins seeded.")
 
 
 def _migrate_calendar_users_to_guest(app):
