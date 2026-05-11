@@ -51,7 +51,7 @@ const images = ref({ building_door: null, apartment_door: null })
 const router = useRouter()
 const authStore = useAuthStore()
 
-const DURATION = 5000  // ms — matches GPIO relay pulse duration
+const DURATION = 5000  // ms — relay pulse duration for all doors
 const active = ref(null)   // 'building' | 'apartment' | null
 const progress = ref(100)  // 100 → 0 over DURATION ms
 
@@ -66,6 +66,7 @@ async function unlock(door) {
   if (active.value !== null) return
   active.value = door
   progress.value = 100
+  const duration = DURATION
 
   // Log virtual button press to backend
   try {
@@ -75,13 +76,25 @@ async function unlock(door) {
     console.error('Button press log failed:', e)
   }
 
-  // GPIO relay trigger will be wired here
+  // Trigger GPIO relay: building → pin 17, apartment → pin 27
+  const pinMap = { building: 17, apartment: 27 }
+  const pin = pinMap[door]
+  if (pin) {
+    try {
+      await api.post(`/gpio/pins/${pin}/toggle`)   // ON
+      setTimeout(async () => {
+        try { await api.post(`/gpio/pins/${pin}/toggle`) } catch (_) {}  // OFF
+      }, duration)
+    } catch (e) {
+      console.error('GPIO trigger failed:', e)
+    }
+  }
 
   const start = performance.now()
   const tick = (now) => {
     const elapsed = now - start
-    progress.value = Math.max(0, 100 - (elapsed / DURATION) * 100)
-    if (elapsed < DURATION) {
+    progress.value = Math.max(0, 100 - (elapsed / duration) * 100)
+    if (elapsed < duration) {
       requestAnimationFrame(tick)
     } else {
       active.value = null
