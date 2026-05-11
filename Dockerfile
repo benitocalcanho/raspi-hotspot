@@ -89,10 +89,12 @@ EXPOSE 5000
 WORKDIR /app/backend
 
 # Single worker to avoid multiple ngrok tunnels on startup.
+# Threads allow concurrent requests (e.g. GPIO + audit log simultaneously).
 # --timeout 120 accommodates calendar sync on slow Pi hardware.
 CMD ["gunicorn", \
      "--bind", "0.0.0.0:5000", \
      "--workers", "1", \
+     "--threads", "4", \
      "--timeout", "120", \
      "--access-logfile", "-", \
      "app:create_app()"]
