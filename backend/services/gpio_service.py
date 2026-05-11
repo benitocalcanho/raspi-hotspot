@@ -31,7 +31,9 @@ def _get_or_create_device(pin_number: int, direction: str):
         return _pin_devices[pin_number]
 
     if direction == "output":
-        device = LED(pin_number)
+        # active_high=False: most relay boards are active-LOW (LOW = relay ON)
+        # initial_value=False: start inactive (pin HIGH = relay OFF)
+        device = LED(pin_number, active_high=False, initial_value=False)
     else:
         device = Button(pin_number)
 
