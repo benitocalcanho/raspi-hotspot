@@ -28,7 +28,6 @@
           <td>{{ formatDetail(entry.detail) }}</td>
         </tr>
       </tbody>
-    <!-- removed duplicate closing table tag -->
     </table>
     <div v-else class="empty">No audit log entries found.</div>
   </div>

@@ -1,14 +1,14 @@
 <template>
   <div>
     <div v-if="showAdd" class="add-form">
-      <h4>Configure New Pin</h4>
-      <input v-model.number="newPin.pin_number" type="number" placeholder="BCM pin (2–27)" min="2" max="27" />
-      <input v-model="newPin.label" placeholder="Label (e.g. LED)" />
+      <h4>{{ $t('configure_new_pin') }}</h4>
+      <input v-model.number="newPin.pin_number" type="number" :placeholder="$t('bcm_pin')" min="2" max="27" />
+      <input v-model="newPin.label" :placeholder="$t('label_example')" />
       <select v-model="newPin.direction">
-        <option value="output">Output</option>
-        <option value="input">Input</option>
+        <option value="output">{{ $t('output') }}</option>
+        <option value="input">{{ $t('input') }}</option>
       </select>
-      <button @click="addPin" class="btn-green">Add Pin</button>
+      <button @click="addPin" class="btn-green">{{ $t('add_pin') }}</button>
       <p v-if="addError" class="error">{{ addError }}</p>
     </div>
 
@@ -20,23 +20,23 @@
         </div>
         <div class="pin-body">
           <span :class="['state', pin.state ? 'on' : 'off']">
-            {{ pin.state ? 'ON' : 'OFF' }}
+            {{ pin.state ? $t('on') : $t('off') }}
           </span>
           <button
             v-if="pin.direction === 'output'"
             @click="gpioStore.togglePin(pin.pin_number)"
             :class="['toggle-btn', pin.state ? 'on' : 'off']"
           >
-            Toggle
+            {{ $t('toggle') }}
           </button>
-          <span v-else class="direction-badge">INPUT</span>
+          <span v-else class="direction-badge">{{ $t('input_badge') }}</span>
         </div>
         <div v-if="showAdd" class="pin-footer">
-          <button @click="gpioStore.deletePin(pin.pin_number)" class="btn-danger-sm">Remove</button>
+          <button @click="gpioStore.deletePin(pin.pin_number)" class="btn-danger-sm">{{ $t('remove') }}</button>
         </div>
       </div>
     </div>
-    <p v-else class="empty">No GPIO pins configured.</p>
+    <p v-else class="empty">{{ $t('no_gpio_pins') }}</p>
   </div>
 </template>
 

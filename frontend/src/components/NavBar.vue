@@ -1,13 +1,13 @@
 <template>
   <nav class="navbar">
-    <div class="brand">Raspi Hotspot</div>
+    <div class="brand">{{ $t('app_name') }}</div>
     <div class="links">
-      <router-link v-if="authStore.user?.role === 'admin'" to="/admin">Admin</router-link>
-      <router-link v-if="authStore.user?.role === 'cleaner'" to="/cleaner">Cleaner</router-link>
-      <router-link v-if="authStore.user?.role === 'guest'" to="/guest">Guest</router-link>
-      <router-link v-if="authStore.user?.role === 'user'" to="/dashboard">Dashboard</router-link>
-      <router-link v-if="authStore.user?.role === 'admin' || authStore.user?.role === 'cleaner'" to="/gpio">GPIO</router-link>
-      <button @click="handleLogout" class="logout">Sign Out</button>
+      <router-link v-if="authStore.user?.role === 'admin'" to="/admin">{{ $t('nav_admin') }}</router-link>
+      <router-link v-if="authStore.user?.role === 'cleaner'" to="/cleaner">{{ $t('nav_cleaner') }}</router-link>
+      <router-link v-if="authStore.user?.role === 'guest'" to="/guest">{{ $t('nav_guest') }}</router-link>
+      <router-link v-if="authStore.user?.role === 'user'" to="/dashboard">{{ $t('nav_dashboard') }}</router-link>
+      <router-link v-if="authStore.user?.role === 'admin' || authStore.user?.role === 'cleaner'" to="/gpio">{{ $t('nav_gpio') }}</router-link>
+      <button @click="handleLogout" class="logout">{{ $t('nav_signout') }}</button>
     </div>
   </nav>
 </template>

@@ -1,24 +1,24 @@
 <template>
   <div class="settings-panel">
-    <p v-if="loading" class="hint">Loading settings…</p>
+    <p v-if="loading" class="hint">Loading settings...</p>
 
     <template v-else>
       <div v-for="section in sections" :key="section.id" class="setting-section">
-        <h4>{{ section.label }}</h4>
-        <p class="section-desc">{{ section.desc }}</p>
+        <h4>{{ $t(section.label) }}</h4>
+        <p class="section-desc">{{ $t(section.desc) }}</p>
 
         <div v-for="key in section.keys" :key="key" class="field">
           <!-- Special: guest password mode radio -->
           <template v-if="key === 'CALENDAR_GUEST_PASSWORD_MODE'">
-            <label>Guest Password Source</label>
+            <label>{{ $t('guest_password_source') }}</label>
             <div class="radio-group">
               <label class="radio-label">
                 <input type="radio" v-model="form['CALENDAR_GUEST_PASSWORD_MODE']" value="fixed" />
-                Fixed password (type it below)
+                {{ $t('fixed_password') }}
               </label>
               <label class="radio-label">
                 <input type="radio" v-model="form['CALENDAR_GUEST_PASSWORD_MODE']" value="from_event" />
-                Last word of calendar event title (e.g. last 4 digits of phone number)
+                {{ $t('password_from_event') }}
               </label>
             </div>
           </template>
@@ -35,12 +35,12 @@
           <template v-else>
             <label>
               {{ schema[key]?.label }}
-              <span v-if="!values[key]?.is_set" class="badge-unset">Not set</span>
+              <span v-if="!values[key]?.is_set" class="badge-unset">{{ $t('not_set') }}</span>
             </label>
             <textarea
               v-if="schema[key]?.multiline"
               v-model="form[key]"
-              :placeholder="values[key]?.is_set ? '(currently set — paste new JSON to replace)' : 'Paste credentials.json content here'"
+              :placeholder="values[key]?.is_set ? '(currently set - paste new JSON to replace)' : 'Paste credentials.json content here'"
               rows="5"
             />
             <input
@@ -58,9 +58,9 @@
             @click="saveSection(section)"
             :disabled="saving === section.id"
           >
-            {{ saving === section.id ? 'Saving…' : 'Save' }}
+            {{ saving === section.id ? $t('saving') : $t('save') }}
           </button>
-          <span v-if="saved === section.id" class="success">Saved!</span>
+          <span v-if="saved === section.id" class="success">{{ $t('saved') }}</span>
           <span v-if="sectionError[section.id]" class="error">{{ sectionError[section.id] }}</span>
         </div>
       </div>
@@ -96,26 +96,26 @@ const allSections = [
   // Calendar-related sections removed from default Settings tab, will be shown only in Calendar tab
   {
     id: 'schedule',
-    label: 'Guest Schedule',
-    desc: 'Daily times when guests are checked out and checked in. Use 24-hour HH:MM format (e.g. 12:00 and 14:00).',
+    label: 'section_schedule',
+    desc: 'desc_schedule',
     keys: ['CHECKOUT_TIME', 'CHECKIN_TIME'],
   },
   {
     id: 'ngrok',
-    label: 'ngrok Tunnel',
-    desc: 'Expose your Pi to guests over the internet. Get your token at dashboard.ngrok.com.',
+    label: 'section_ngrok',
+    desc: 'desc_ngrok',
     keys: ['NGROK_AUTHTOKEN', 'NGROK_STATIC_DOMAIN'],
   },
   {
     id: 'cleaner',
-    label: 'Cleaner Account',
-    desc: 'Set the username and password for the cleaner. Only one cleaner account is active at a time. Role is always "cleaner".',
+    label: 'section_cleaner',
+    desc: 'desc_cleaner',
     keys: ['CLEANER_USERNAME', 'CLEANER_PASSWORD'],
   },
   {
     id: 'calendar_rules',
-    label: 'Calendar Rules',
-    desc: 'Controls how guests are created from calendar events.',
+    label: 'section_calendar_rules',
+    desc: 'desc_calendar_rules',
     keys: ['CALENDAR_GUEST_DEFAULT_PASSWORD'],
   },
 ]
@@ -130,8 +130,8 @@ const sections = computed(() => {
     return [
       {
         id: 'email',
-        label: 'Email Notifications',
-        desc: 'Configure SMTP server and recipient for notification emails. These settings are used to send alerts when a user presses a button.',
+        label: 'section_email',
+        desc: 'desc_email',
         keys: ['SMTP_HOST', 'SMTP_PORT', 'SMTP_USER', 'SMTP_PASS', 'EMAIL_SENDER', 'EMAIL_RECIPIENT'],
       },
     ]
@@ -140,32 +140,32 @@ const sections = computed(() => {
   const calendarSections = {
     ical: {
       id: 'ical',
-      label: 'Google Calendar (iCal — recommended)',
-      desc: 'Paste the private iCal URL from Google Calendar → Settings → "Secret address in iCal format". No API keys needed. One event per day = one active guest.',
+      label: 'section_ical',
+      desc: 'desc_ical',
       keys: ['ICAL_URL'],
     },
     guest_password: {
       id: 'guest_password',
-      label: 'Guest Password',
-      desc: 'How the password is assigned to guests created from calendar events.',
+      label: 'section_guest_password',
+      desc: 'desc_guest_password',
       keys: ['CALENDAR_GUEST_PASSWORD_MODE', 'CALENDAR_GUEST_DEFAULT_PASSWORD'],
     },
     schedule: {
       id: 'schedule',
-      label: 'Guest Schedule',
-      desc: 'Daily times when guests are checked out and checked in. Use 24-hour HH:MM format (e.g. 12:00 and 14:00).',
+      label: 'section_schedule',
+      desc: 'desc_schedule',
       keys: ['CHECKOUT_TIME', 'CHECKIN_TIME'],
     },
     cleaner: {
       id: 'cleaner',
-      label: 'Cleaner Account',
-      desc: 'Set the username and password for the cleaner. Only one cleaner account is active at a time. Role is always "cleaner".',
+      label: 'section_cleaner',
+      desc: 'desc_cleaner',
       keys: ['CLEANER_USERNAME', 'CLEANER_PASSWORD'],
     },
     calendar_rules: {
       id: 'calendar_rules',
-      label: 'Calendar Rules',
-      desc: 'Controls how guests are created from calendar events.',
+      label: 'section_calendar_rules',
+      desc: 'desc_calendar_rules',
       keys: ['CALENDAR_GUEST_DEFAULT_PASSWORD'],
     },
   }

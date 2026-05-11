@@ -30,7 +30,6 @@ function formatDate(iso) {
   return new Date(iso).toLocaleString()
 }
 
-
 async function loadButtonHistory() {
   const { data } = await api.get('/admin/audit?event=button_press')
   entries.value = data.items

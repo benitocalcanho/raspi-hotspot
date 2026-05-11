@@ -27,14 +27,14 @@
               :disabled="net.active || connecting === net.name"
               class="btn-sm"
             >
-              {{ connecting === net.name ? 'Connecting…' : 'Connect' }}
+              {{ connecting === net.name ? 'Connecting...' : 'Connect' }}
             </button>
             <button
               @click="deleteSaved(net.name)"
               :disabled="deleting === net.name"
               class="btn-sm btn-danger"
             >
-              {{ deleting === net.name ? '…' : 'Remove' }}
+              {{ deleting === net.name ? '…' : $t('remove') }}
             </button>
           </div>
         </li>
@@ -46,7 +46,7 @@
     <div class="section-card">
       <h4>Add / Update Network</h4>
       <p class="hint">
-        Enter the credentials of any WiFi network — including ones not currently visible.
+        Enter the credentials of any WiFi network, including ones not currently visible.
         When the Raspberry Pi is moved to that location, it will connect automatically.
       </p>
 
@@ -61,7 +61,7 @@
       </div>
 
       <button @click="addNetwork" :disabled="adding" class="btn-primary">
-        {{ adding ? 'Saving…' : 'Save Credentials' }}
+        {{ adding ? $t('saving') : 'Save Credentials' }}
       </button>
       <p v-if="addError" class="error">{{ addError }}</p>
       <p v-if="addSuccess" class="success">{{ addSuccess }}</p>

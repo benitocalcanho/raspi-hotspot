@@ -9,5 +9,9 @@ cd frontend
 npm run build
 cd ../backend
 pkill -f "python app.py" || true
-nohup python app.py > flask.log 2>&1 &
+if [ -x ".venv/bin/python" ]; then
+	nohup .venv/bin/python app.py > flask.log 2>&1 &
+else
+	nohup python3 app.py > flask.log 2>&1 &
+fi
 echo "Frontend rebuilt and Flask restarted."

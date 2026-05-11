@@ -3,8 +3,8 @@
     <table v-if="users.length">
       <thead>
         <tr>
-          <th>Username</th>
-          <th>Role</th>
+          <th>{{ $t('username') }}</th>
+          <th>{{ $t('role') }}</th>
           <th>Status</th>
           <th>Created</th>
           <th>Source</th>

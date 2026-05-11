@@ -1,18 +1,18 @@
 <template>
   <div>
-    <h2>Cleaner Dashboard</h2>
+    <h2>{{ $t('cleaner_dashboard_title') }}</h2>
 
     <div v-if="dashboard" class="welcome">
-      Hello, <strong>{{ dashboard.user.username }}</strong>. You are logged in as cleaner.
+      {{ $t('cleaner_dashboard_welcome', { username: dashboard.user.username }) }}
     </div>
 
     <div class="section">
-      <h3>GPIO Controls</h3>
+      <h3>{{ $t('gpio_controls') }}</h3>
       <GpioPanel />
     </div>
 
     <div class="section">
-      <h3>Recent Logins</h3>
+      <h3>{{ $t('recent_logins') }}</h3>
       <AuditLog :entries="dashboard?.recent_logins ?? []" />
     </div>
   </div>

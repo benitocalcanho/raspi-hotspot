@@ -46,11 +46,6 @@
         <h3>User Management</h3>
         <button @click="showCreate = !showCreate" class="btn-primary">+ New User</button>
       </div>
-    <!-- Button History tab -->
-    <section v-if="tab === 'buttonhistory'">
-      <h3>Button History</h3>
-      <ButtonHistoryTable />
-    </section>
 
       <form v-if="showCreate" @submit.prevent="createUser" class="create-form">
         <input v-model="newUser.username" placeholder="Username" required />
@@ -66,6 +61,12 @@
       </form>
 
       <UserTable :users="users" @refresh="loadUsers" />
+    </section>
+
+    <!-- Button History tab -->
+    <section v-if="tab === 'buttonhistory'">
+      <h3>Button History</h3>
+      <ButtonHistoryTable />
     </section>
 
     <!-- Audit tab -->
@@ -142,7 +143,6 @@
     </section>
   </div>
 </template>
-
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import ButtonHistoryTable from '../components/ButtonHistoryTable.vue'

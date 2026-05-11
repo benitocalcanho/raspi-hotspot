@@ -1,18 +1,18 @@
 <template>
   <div>
-    <h2>My Dashboard</h2>
+    <h2>{{ $t('user_dashboard') }}</h2>
 
     <div v-if="dashboard" class="welcome">
-      Welcome back, <strong>{{ dashboard.user.username }}</strong>
+      {{ $t('welcome_back') }} <strong>{{ dashboard.user.username }}</strong>
     </div>
 
     <div class="section">
-      <h3>Recent Logins</h3>
+      <h3>{{ $t('recent_logins') }}</h3>
       <AuditLog :entries="dashboard?.recent_logins ?? []" />
     </div>
 
     <div class="section">
-      <h3>GPIO Controls</h3>
+      <h3>{{ $t('gpio_controls') }}</h3>
       <GpioPanel />
     </div>
   </div>

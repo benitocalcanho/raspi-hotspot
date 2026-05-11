@@ -1,27 +1,20 @@
 <template>
-  <div class="login-page">
-    <div class="login-card">
-
-      <h1>Raspi Hotspot</h1>
-      <p class="subtitle">{{ $t('welcome') }}</p>
-
-      <form @submit.prevent="handleLogin">
-        <div class="field">
-          <label>{{ $t('username') }}</label>
-          <input v-model="username" type="text" autocomplete="username" required />
-        </div>
-        <div class="field">
-          <label>{{ $t('password') }}</label>
-          <input v-model="password" type="password" autocomplete="current-password" required />
-        </div>
-
-        <p v-if="error" class="error">{{ error }}</p>
-
-        <button type="submit" :disabled="loading">
-          {{ loading ? $t('signing_in') : $t('sign_in') }}
-        </button>
-      </form>
-    </div>
+  <div class="login-view">
+    <h1>{{ $t('sign_in') }}</h1>
+    <form @submit.prevent="handleLogin">
+      <div class="field">
+          <label for="username">{{ $t('username') }}</label>
+        <input id="username" v-model="username" required />
+      </div>
+      <div class="field">
+          <label for="password">Password</label>
+        <input id="password" v-model="password" type="password" autocomplete="current-password" required />
+      </div>
+      <p v-if="error" class="error">{{ error }}</p>
+      <button type="submit" :disabled="loading">
+        {{ loading ? $t('signing_in') : $t('sign_in') }}
+      </button>
+    </form>
   </div>
 </template>
 
