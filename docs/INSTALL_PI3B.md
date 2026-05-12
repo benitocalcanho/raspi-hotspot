@@ -1,5 +1,10 @@
 # Raspberry Pi 3 B+ — Step-by-Step Installation Log
 
+## Shared Behavior Note
+
+Calendar schedule times are deployment-local and must follow each target host timezone.
+If needed, set APP_TIMEZONE (IANA name) to explicitly override runtime detection.
+
 This document tracks the exact steps taken to install the app on a Raspberry Pi 3 B+.
 It serves as a repeatable reference for future installs.
 

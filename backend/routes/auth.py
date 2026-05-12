@@ -9,11 +9,12 @@ from flask_jwt_extended import (
     get_jwt_identity,
     get_jwt,
 )
-from datetime import date
+from flask import current_app
 
 from models.user import User
 from models import db
 from services.audit_service import log_event
+from utils.timezone_utils import local_today
 
 auth_bp = Blueprint("auth", __name__)
 
@@ -39,7 +40,7 @@ def login():
         )
         return jsonify({"error": "Invalid credentials."}), 401
 
-    if user.valid_until and date.today() >= user.valid_until:
+    if user.valid_until and local_today(app=current_app) >= user.valid_until:
         log_event("login_failed", user_id=user.id, detail={"username": username, "reason": "stay_ended"})
         return jsonify({"error": "Your stay has ended."}), 403
 
@@ -62,7 +63,7 @@ def refresh():
     identity = get_jwt_identity()
     claims = get_jwt()
     user = User.query.get(int(identity))
-    if user and user.valid_until and date.today() >= user.valid_until:
+    if user and user.valid_until and local_today(app=current_app) >= user.valid_until:
         return jsonify({"error": "Your stay has ended."}), 401
     access_token = create_access_token(
         identity=identity,

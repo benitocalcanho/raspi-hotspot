@@ -11,6 +11,8 @@ import re
 from datetime import date, datetime, timezone
 from typing import Optional, Dict
 
+from utils.timezone_utils import get_effective_timezone, get_effective_timezone_info, local_today
+
 logger = logging.getLogger(__name__)
 _scheduler = None  # module-level reference so it can be shut down on restart
 
@@ -88,13 +90,13 @@ def next_available_username(User, base_username: str) -> str:
 
 
 # New: Parse all events and return those active today (today in [DTSTART, DTEND))
-def _parse_ical_events_active_today(ical_text: str):
+def _parse_ical_events_active_today(ical_text: str, today: Optional[date] = None):
     """
     Parse an iCal string and return a list of (SUMMARY, DTSTART, DTEND) tuples for events active today.
     Handles line folding (RFC 5545: continuation lines start with a space/tab).
     """
     unfolded = re.sub(r"\r?\n[ \t]", "", ical_text)
-    today = date.today()
+    target_day = today or date.today()
     active_events = []
     for block in re.split(r"BEGIN:VEVENT", unfolded):
         # DTSTART
@@ -106,7 +108,7 @@ def _parse_ical_events_active_today(ical_text: str):
         dt_start = datetime.strptime(m_start.group(1), "%Y%m%d").date()
         dt_end = datetime.strptime(m_end.group(1), "%Y%m%d").date()
         # iCal: DTEND is exclusive, so event is active if today in [start, end)
-        if dt_start <= today < dt_end:
+        if dt_start <= target_day < dt_end:
             active_events.append((m_summary.group(1).strip(), dt_start, dt_end))
     return active_events
 
@@ -155,7 +157,7 @@ def sync_calendar_ical(app) -> dict:
             result["error"] = str(exc)
             return result
 
-        active_events = _parse_ical_events_active_today(resp.text)
+        active_events = _parse_ical_events_active_today(resp.text, today=local_today(app=app))
         if not active_events:
             # No ongoing event — delete guests and activate/create cleaner
             old_guests = User.query.filter_by(created_by="calendar", role="guest").all()
@@ -425,7 +427,7 @@ def checkout_guests(app) -> None:
         except Exception as exc:
             logger.error("iCal fetch failed during checkout: %s", exc)
             return
-        active_events = _parse_ical_events_active_today(resp.text)
+        active_events = _parse_ical_events_active_today(resp.text, today=local_today(app=app))
         if active_events:
             # Ongoing multi-day stay: keep guest, ensure cleaner is deactivated
             logger.info("Checkout job: ongoing event(s) found, not deleting guest.")
@@ -507,25 +509,34 @@ def start_scheduler(app) -> None:
         co_h, co_m = _parse_time(checkout_str)
         ci_h, ci_m = _parse_time(checkin_str)
 
-        _scheduler = BackgroundScheduler()
+        tz_info = get_effective_timezone_info(app=app)
+        scheduler_tz = get_effective_timezone(app=app)
+        _scheduler = BackgroundScheduler(timezone=scheduler_tz)
         _scheduler.add_job(
             checkout_guests,
-            CronTrigger(hour=co_h, minute=co_m),
+            CronTrigger(hour=co_h, minute=co_m, timezone=scheduler_tz),
             args=[app],
             id="checkout_guests",
             replace_existing=True,
         )
         _scheduler.add_job(
             sync_calendar,
-            CronTrigger(hour=ci_h, minute=ci_m),
+            CronTrigger(hour=ci_h, minute=ci_m, timezone=scheduler_tz),
             args=[app],
             id="checkin_sync",
             replace_existing=True,
         )
         _scheduler.start()
+        checkout_job = _scheduler.get_job("checkout_guests")
+        checkin_job = _scheduler.get_job("checkin_sync")
         logger.info(
-            "Scheduler started: checkout=%s, checkin=%s.",
-            checkout_str, checkin_str,
+            "Scheduler started: checkout=%s, checkin=%s, timezone=%s(source=%s), next_checkout=%s, next_checkin=%s.",
+            checkout_str,
+            checkin_str,
+            tz_info["name"],
+            tz_info["source"],
+            checkout_job.next_run_time if checkout_job else None,
+            checkin_job.next_run_time if checkin_job else None,
         )
     except Exception as exc:
         logger.error("Failed to start calendar scheduler: %s", exc)

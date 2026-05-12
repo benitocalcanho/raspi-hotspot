@@ -34,7 +34,7 @@ Returns the authenticated user's profile.
 ## Admin (`/api/admin`) — admin role required
 
 ### GET `/admin/overview`
-System summary: user counts, audit event count, ngrok URL, system time.
+System summary: user counts, audit event count, ngrok URL, system time, effective timezone.
 
 ### GET `/admin/users`
 List all users.
@@ -77,11 +77,13 @@ Update one or more settings. Empty strings are ignored (keeps existing value).
   "ICAL_URL": "https://calendar.google.com/...",
   "CALENDAR_GUEST_PASSWORD_MODE": "from_event",
   "NGROK_AUTHTOKEN": "...",
+  "APP_TIMEZONE": "Europe/Lisbon",
   "CHECKOUT_TIME": "12:00",
   "CHECKIN_TIME": "14:00"
 }
 ```
 If `NGROK_AUTHTOKEN` or `NGROK_STATIC_DOMAIN` is updated, the ngrok tunnel restarts automatically.
+If `APP_TIMEZONE`, `CHECKOUT_TIME`, or `CHECKIN_TIME` changes, restart/apply scheduler changes so new run times take effect immediately.
 
 ---
 

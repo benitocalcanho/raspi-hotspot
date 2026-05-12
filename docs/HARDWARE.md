@@ -1,5 +1,9 @@
 # Hardware Setup — Raspberry Pi 3
 
+## Shared Behavior Note
+
+Hardware wiring is portable, and calendar/scheduler behavior should remain deployment-local timezone aware on each host.
+
 # Hardware Setup — Raspberry Pi 3
 # Hardware Setup — Raspberry Pi 3
 

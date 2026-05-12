@@ -11,6 +11,7 @@ from models.audit_log import AuditLog
 from services.audit_service import log_event
 from services import ngrok_service
 from utils.decorators import require_roles
+from utils.timezone_utils import get_effective_timezone_info, local_now
 
 
 
@@ -123,6 +124,12 @@ SETTINGS_SCHEMA = {
     },
     "CHECKIN_TIME": {
         "label": "Check-in time (HH:MM)",
+        "section": "schedule",
+        "secret": False,
+        "multiline": False,
+    },
+    "APP_TIMEZONE": {
+        "label": "App Timezone (IANA, optional)",
         "section": "schedule",
         "secret": False,
         "multiline": False,
@@ -323,10 +330,11 @@ def overview():
     active_users = User.query.filter_by(is_active=True).count()
     total_events = AuditLog.query.count()
     ngrok_url = ngrok_service.get_public_url()
-    import time, datetime
-    tz_name = time.tzname[time.daylight] if time.daylight else time.tzname[0]
-    tz_offset = -time.timezone // 3600
-    now = datetime.datetime.now().isoformat()
+    tz_info = get_effective_timezone_info()
+    now_dt = local_now()
+    tz_name = tz_info["name"]
+    tz_offset = int((now_dt.utcoffset().total_seconds() if now_dt.utcoffset() else 0) / 3600)
+    now = now_dt.isoformat()
     return jsonify({
         "total_users": total_users,
         "active_users": active_users,
@@ -335,6 +343,7 @@ def overview():
         "system_time": now,
         "timezone_name": tz_name,
         "timezone_offset": tz_offset,
+        "timezone_source": tz_info["source"],
     }), 200
 
 
@@ -363,14 +372,18 @@ def restart_scheduler():
         pass
 
     start_scheduler(current_app)
+    tz_info = get_effective_timezone_info(app=current_app)
     log_event("scheduler_restarted", user_id=admin_id, detail={
         "checkout": current_app.config.get("CHECKOUT_TIME"),
         "checkin": current_app.config.get("CHECKIN_TIME"),
+        "timezone": tz_info["name"],
     })
     return jsonify({
         "message": "Scheduler restarted.",
         "checkout_time": current_app.config.get("CHECKOUT_TIME", "12:00"),
         "checkin_time": current_app.config.get("CHECKIN_TIME", "14:00"),
+        "timezone": tz_info["name"],
+        "timezone_source": tz_info["source"],
     }), 200
 
 

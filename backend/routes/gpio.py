@@ -4,11 +4,12 @@ pins that are assigned to them (future: per-pin ACL).
 """
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity, get_jwt
-from datetime import date
+from flask import current_app
 
 from services import gpio_service
 from services.audit_service import log_event
 from utils.decorators import require_roles
+from utils.timezone_utils import local_today
 
 gpio_bp = Blueprint("gpio", __name__)
 
@@ -81,7 +82,7 @@ def toggle_pin(pin_number):
 
     # Gather details for email
     user = User.query.get(user_id)
-    if user and user.valid_until and date.today() >= user.valid_until:
+    if user and user.valid_until and local_today(app=current_app) >= user.valid_until:
         return jsonify({"error": "Your stay has ended."}), 403
     device = request.headers.get("User-Agent", "Unknown")
     button_label = getattr(pin, "label", f"Pin {pin_number}")

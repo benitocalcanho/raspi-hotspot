@@ -23,6 +23,10 @@ services:
     env_file:
       - ./config/.env
 
+    environment:
+      APP_TIMEZONE: ${APP_TIMEZONE:-}
+      TZ: ${TZ:-}
+
     ports:
       # Host port : Container port
       - "5000:5000"
@@ -33,6 +37,10 @@ services:
 
       # Door images uploaded via the admin dashboard
       - raspi_uploads:/app/backend/uploads
+
+      # Inherit host timezone files so runtime detection matches deployment target
+      - /etc/localtime:/etc/localtime:ro
+      - /etc/timezone:/etc/timezone:ro
 
     restart: unless-stopped
 

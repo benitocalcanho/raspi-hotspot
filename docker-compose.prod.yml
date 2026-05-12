@@ -42,6 +42,8 @@ services:
       CALENDAR_SYNC_INTERVAL: "300"
       CHECKOUT_TIME: "12:00"
       CHECKIN_TIME: "14:00"
+      APP_TIMEZONE: ${APP_TIMEZONE:-}
+      TZ: ${TZ:-}
       TAILSCALE_SUBNET: 100.64.0.0/10
       ADMIN_REQUIRE_TAILSCALE: "false"
 
@@ -55,6 +57,10 @@ services:
 
       # Door images uploaded via the admin dashboard
       - raspi_uploads:/app/backend/uploads
+
+      # Inherit host timezone files so runtime detection matches deployment target
+      - /etc/localtime:/etc/localtime:ro
+      - /etc/timezone:/etc/timezone:ro
 
     restart: unless-stopped
     container_name: raspi-hotspot

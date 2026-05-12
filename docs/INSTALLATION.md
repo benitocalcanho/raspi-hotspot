@@ -1,5 +1,11 @@
 # Installation Guide — Raspberry Pi 3 / Pi 2 B
 
+## Shared Behavior Note
+
+Calendar schedule times are interpreted in deployment-local timezone at each install target.
+Do not hardcode maintainer-specific timezone assumptions into app behavior.
+Optional override: set APP_TIMEZONE (IANA name) when a host needs explicit timezone control.
+
 This guide covers two deployment paths:
 
 | Path | Best for |

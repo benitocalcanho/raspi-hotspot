@@ -70,6 +70,13 @@ Two cron jobs run daily (times configurable in dashboard):
 
 An event is **active today** when: `DTSTART ≤ today < DTEND` (iCal DTEND is exclusive).
 
+### Timezone Behavior
+
+- Scheduler and `today` calculations use deployment-local timezone detected at runtime.
+- Optional override: set `APP_TIMEZONE` (IANA timezone name) to force a specific timezone.
+- If unset, runtime detection uses `TZ`, then `/etc/timezone` or `/etc/localtime`, and falls back to UTC only if no valid timezone is found.
+- In Docker deployments, mount host timezone files so container runtime matches host timezone.
+
 ---
 
 ## Cleaner Account Lifecycle

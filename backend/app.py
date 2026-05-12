@@ -35,6 +35,7 @@ from routes.user import user_bp
 from routes.wifi import wifi_bp
 from routes.calendar_sync import calendar_bp
 from routes.uploads import uploads_bp
+from utils.timezone_utils import get_effective_timezone_info, local_now
 
 
 def create_app(config_class=Config):
@@ -67,6 +68,14 @@ def create_app(config_class=Config):
         db.create_all()       # creates settings table first
         _migrate_add_valid_until(app)  # must run before any ORM queries
         _load_db_settings(app)
+        tz_info = get_effective_timezone_info(app=app)
+        app.config["EFFECTIVE_TIMEZONE"] = tz_info["name"]
+        app.logger.info(
+            "Effective app timezone: %s (source=%s) now=%s",
+            tz_info["name"],
+            tz_info["source"],
+            local_now(app=app).isoformat(),
+        )
         _seed_admin(app)
         _seed_gpio(app)
         _migrate_calendar_users_to_guest(app)

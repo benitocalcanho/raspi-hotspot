@@ -43,8 +43,11 @@ function formatEvent(event) {
 defineProps({ entries: Array })
 const timezoneName = Intl.DateTimeFormat().resolvedOptions().timeZone
 function formatDate(iso) {
-  // Ensure the string is parsed as UTC
-  let date = iso.endsWith('Z') ? new Date(iso) : new Date(iso + 'Z');
+  if (!iso) return ''
+  const hasTimezone = /([zZ]|[+\-]\d{2}:\d{2})$/.test(iso)
+  const value = hasTimezone ? iso : `${iso}Z`
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return iso
   return date.toLocaleString(undefined, {
     year: 'numeric', month: 'short', day: 'numeric',
     hour: '2-digit', minute: '2-digit', second: '2-digit',

@@ -149,8 +149,13 @@ The scheduler runs two cron jobs daily:
 
 | Time | Action |
 |---|---|
-| `CHECKOUT_TIME` (12:00) | Deletes all `guest` accounts created by the calendar |
-| `CHECKIN_TIME` (14:00) | Fetches iCal URL, finds today's events, creates guest account |
+| `CHECKOUT_TIME` (12:00) | Re-checks iCal. If no event is active today, deletes calendar-created guest accounts and activates/creates cleaner. If an event is still active, guest is kept and cleaner stays deactivated. |
+| `CHECKIN_TIME` (14:00) | Fetches iCal URL, finds events active today, creates or updates guest account and deactivates cleaner. |
+
+Timezone behavior (plug-and-play):
+- Scheduler and date checks run in deployment-local timezone detected at runtime.
+- Optional override is available via `APP_TIMEZONE` (IANA name, e.g. `Europe/Lisbon`).
+- If no override is set, runtime uses container/system timezone (`TZ`, `/etc/timezone`, `/etc/localtime`) and falls back to UTC only if detection fails.
 
 
 The **first word** of the calendar event title becomes the username (lowercased). Passwords are set from the dashboard setting. Login is case-insensitive. **No email field is required for user creation.**

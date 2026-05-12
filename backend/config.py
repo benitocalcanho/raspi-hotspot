@@ -56,6 +56,9 @@ class Config:
     # Guest rotation schedule (HH:MM, 24h)
     CHECKOUT_TIME: str = os.getenv("CHECKOUT_TIME", "12:00")  # guests lose access
     CHECKIN_TIME: str = os.getenv("CHECKIN_TIME", "14:00")    # new guest account created
+    # Optional explicit timezone override (IANA name, e.g. Europe/Lisbon).
+    # If blank, runtime system timezone detection is used.
+    APP_TIMEZONE: str = os.getenv("APP_TIMEZONE", "")
     CALENDAR_GUEST_DEFAULT_PASSWORD: str = os.getenv("CALENDAR_GUEST_DEFAULT_PASSWORD", "guest12345")
     CALENDAR_SYNC_ENABLED: bool = os.getenv("CALENDAR_SYNC_ENABLED", "true").strip().lower() in ("1", "true", "yes", "on")
     CALENDAR_SYNC_INTERVAL: int = int(os.getenv("CALENDAR_SYNC_INTERVAL", "300"))

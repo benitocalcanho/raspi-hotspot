@@ -1,5 +1,10 @@
 # Remote Access — ngrok + Tailscale
 
+## Shared Behavior Note
+
+Remote access configuration is host-specific, but calendar scheduling remains deployment-local timezone based.
+Avoid maintainer-specific timezone assumptions in remote operations and support flows.
+
 ## Architecture
 
 | Channel | Who | How |
