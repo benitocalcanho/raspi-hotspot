@@ -7,7 +7,7 @@
 #  Raspberry Pi (with GPIO):
 #    docker compose -f docker-compose.yml -f docker-compose.pi.yml up --build
 #
-#  First run: copy config/.env.example → config/.env and fill in values.
+#  Optional: provide config/.env to override defaults.
 # ============================================================
 
 services:
@@ -19,13 +19,33 @@ services:
         # Set to "true" only on Raspberry Pi (installs gpiozero)
         ENABLE_GPIO: "false"
 
-    # Read all config from config/.env — no env vars baked into the image
+    # Optional local overrides. The app still starts without this file.
     env_file:
-      - ./config/.env
+      - path: ./config/.env
+        required: false
 
     environment:
+      FLASK_ENV: production
+      SECRET_KEY: ${SECRET_KEY:-raspi-hotspot-default-secret-key-change-me}
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY:-raspi-hotspot-default-jwt-key-change-me}
+      DATABASE_URL: sqlite:///data/raspi.db
+      ADMIN_USERNAME: ${ADMIN_USERNAME:-admin}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-admin12345}
+      CALENDAR_GUEST_DEFAULT_PASSWORD: ${CALENDAR_GUEST_DEFAULT_PASSWORD:-guest12345}
+      NGROK_AUTHTOKEN: ${NGROK_AUTHTOKEN:-}
+      NGROK_STATIC_DOMAIN: ${NGROK_STATIC_DOMAIN:-}
+      APP_PORT: 5000
+      APP_HOST: 0.0.0.0
+      GPIO_MODE: mock
+      ENABLE_GPIO: "false"
+      CALENDAR_SYNC_ENABLED: "true"
+      CALENDAR_SYNC_INTERVAL: "300"
+      CHECKOUT_TIME: "12:00"
+      CHECKIN_TIME: "14:00"
       APP_TIMEZONE: ${APP_TIMEZONE:-}
       TZ: ${TZ:-}
+      TAILSCALE_SUBNET: 100.64.0.0/10
+      ADMIN_REQUIRE_TAILSCALE: "false"
 
     ports:
       # Host port : Container port
@@ -33,7 +53,7 @@ services:
 
     volumes:
       # SQLite database — persists across container restarts and rebuilds
-      - raspi_data:/app/backend/data
+      - raspi_data:/app/backend/instance/data
 
       # Door images uploaded via the admin dashboard
       - raspi_uploads:/app/backend/uploads
@@ -51,7 +71,7 @@ services:
 # Docker manages these on the host. To inspect:
 #   docker volume inspect raspi-hotspot_raspi_data
 # To back up the database:
-#   docker cp raspi-hotspot:/app/backend/data/raspi.db ./backup.db
+#   docker cp raspi-hotspot:/app/backend/instance/data/raspi.db ./backup.db
 volumes:
   raspi_data:
   raspi_uploads:
