@@ -1,39 +1,41 @@
-import os
-try:
-    import RPi.GPIO as GPIO
-    PI_AVAILABLE = True
-except ImportError:
-    PI_AVAILABLE = False
 from datetime import datetime
 from models import db
 from models.door_log import DoorLog
+import os
 
 REED_GPIO = 23
 
-class ReedSensor:
-    def __init__(self):
-        self.last_state = None
-        if PI_AVAILABLE:
-            GPIO.setmode(GPIO.BCM)
-            GPIO.setup(REED_GPIO, GPIO.IN, pull_up_down=GPIO.PUD_UP)
-            GPIO.add_event_detect(REED_GPIO, GPIO.BOTH, callback=self._handle_event, bouncetime=200)
-            self.last_state = self._read_state()
-        else:
-            self.last_state = 'unknown'
+try:
+    from gpiozero import Button
+    _use_mock = os.getenv("GPIO_MODE", "gpiozero") != "gpiozero"
+    if _use_mock:
+        from gpiozero.pins.mock import MockFactory
+        from gpiozero import Device
+        Device.pin_factory = MockFactory()
+    button = Button(REED_GPIO, pull_up=True)
+except ImportError:
+    button = None
 
-    def _read_state(self):
-        if not PI_AVAILABLE:
-            return 'unknown'
-        return 'closed' if GPIO.input(REED_GPIO) else 'open'
+_last_logged_state = None
 
-    def _handle_event(self, channel):
-        state = self._read_state()
-        if state != self.last_state:
-            self.last_state = state
-            db.session.add(DoorLog(timestamp=datetime.utcnow(), state=state, source='sensor'))
-            db.session.commit()
+def _log_state(state: str):
+    global _last_logged_state
+    if state != _last_logged_state:
+        db.session.add(DoorLog(timestamp=datetime.utcnow(), state=state, source="sensor"))
+        db.session.commit()
+        _last_logged_state = state
 
-    def get_state(self):
-        return self._read_state()
+def _on_open():
+    _log_state("open")
 
-reed_sensor = ReedSensor()
+def _on_closed():
+    _log_state("closed")
+
+if button:
+    button.when_pressed = _on_open   # circuit closes (LOW) when door opens
+    button.when_released = _on_closed  # circuit opens (HIGH) when door closes
+
+def get_state():
+    if not button:
+        return "unknown"
+    return "open" if button.is_pressed else "closed"
