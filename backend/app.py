@@ -36,6 +36,7 @@ from routes.wifi import wifi_bp
 from routes.calendar_sync import calendar_bp
 from routes.uploads import uploads_bp
 from utils.timezone_utils import get_effective_timezone_info, local_now
+from routes.door import bp as door_bp
 
 
 def create_app(config_class=Config):
@@ -61,6 +62,7 @@ def create_app(config_class=Config):
     app.register_blueprint(wifi_bp, url_prefix="/api/wifi")
     app.register_blueprint(calendar_bp, url_prefix="/api/calendar")
     app.register_blueprint(uploads_bp, url_prefix="/api/uploads")
+    app.register_blueprint(door_bp)
 
 
     # Create DB tables and seed admin user on first run

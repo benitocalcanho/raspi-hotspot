@@ -180,3 +180,22 @@ Manually trigger iCal sync. Returns a detail object describing every change made
 }
 ```
 `status` values: `"ok"` · `"no_url"` (iCal URL not configured) · `"fetch_error"` (HTTP/network failure, `error` field has detail) · `"error"` (unexpected failure).
+
+### Door Sensor API
+
+#### GET /api/door/status
+- Returns the current state of the door sensor and the timestamp of the last event.
+- Example response:
+  {
+    "state": "open",
+    "timestamp": "2026-05-13T12:34:56.789Z"
+  }
+
+#### GET /api/door/log
+- Returns a list of recent door open/close events (most recent first).
+- Query params: `limit` (default 50), `offset` (default 0)
+- Example response:
+  [
+    { "timestamp": "2026-05-13T12:34:56.789Z", "state": "open" },
+    { "timestamp": "2026-05-13T12:30:00.123Z", "state": "closed" }
+  ]

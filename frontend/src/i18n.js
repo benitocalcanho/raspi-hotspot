@@ -1,3 +1,4 @@
+    // ...existing tab keys...
 import { createI18n } from 'vue-i18n';
 
 const messages = {
@@ -30,6 +31,15 @@ const messages = {
     tab_wifi: 'WiFi Networks',
     tab_doors: 'Door Images',
     tab_buttonhistory: 'Button History',
+    tab_doorlog: 'Door Log',
+    doorLog: {
+      title: 'Door Log',
+      timestamp: 'Timestamp',
+      state: 'State',
+      open: 'Open',
+      closed: 'Closed',
+      refresh: 'Refresh',
+    },
 
     // Cards/Stats
     total_users: 'Total Users',

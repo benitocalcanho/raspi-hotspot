@@ -131,6 +131,8 @@ sudo bash scripts/01-setup-pi.sh
 
 See [docs/INSTALLATION.md](docs/INSTALLATION.md) for full instructions.
 
+For repeatable update workflows on Raspberry Pi, see [docs/DEPLOY_PI.md](docs/DEPLOY_PI.md).
+
 ## Environment Variables
 
 Only the minimum bootstrap variables need to be in `config/.env`. Everything else is set in the dashboard.

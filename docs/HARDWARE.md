@@ -69,3 +69,12 @@ simultaneously thanks to the Broadcom driver's AP+STA support.
 
 If you experience instability, plug in a **USB WiFi dongle** and configure
 `hostapd` to use that interface instead, freeing `wlan0` for client-only use.
+
+## Reed Sensor (Door Open/Closed)
+
+- One side of the reed switch connects to Pin 14 (GND).
+- The other side connects to Pin 16 (GPIO 23, input).
+- Enable the internal pull-up resistor in software.
+- When the door is closed, the circuit is open and GPIO reads HIGH; when open, the circuit closes and GPIO reads LOW (or vice versa, depending on switch orientation).
+
+See docs/GPIO_PINOUT.md for a full table of assignments.
