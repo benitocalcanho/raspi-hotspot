@@ -1,13 +1,10 @@
-# Hardware Setup — Raspberry Pi 3
+# Hardware Setup
 
-## Shared Behavior Note
+This document covers the physical wiring used by Raspi Hotspot. The app uses BCM GPIO numbering in code and in the admin UI.
 
-Hardware wiring is portable, and calendar/scheduler behavior should remain deployment-local timezone aware on each host.
+Use [GPIO_PINOUT.md](GPIO_PINOUT.md) for the compact pin table.
 
-# Hardware Setup — Raspberry Pi 3
-# Hardware Setup — Raspberry Pi 3
-
-## Board Overview
+## Raspberry Pi Header
 
 ```
                     Raspberry Pi 3 Model B/B+
@@ -46,35 +43,83 @@ Hardware wiring is portable, and calendar/scheduler behavior should remain deplo
        GND (39) ● ● (40) GPIO21
 ```
 
-## Example: LED on BCM17
+## Relay Outputs
 
-```
-Pi BCM17 (pin 11) ── [330Ω resistor] ── LED(+) ── LED(-) ── GND (pin 9)
-```
+The default relay outputs are:
 
-Configure in Admin Dashboard → GPIO → Add Pin:
-- BCM pin: `17`
-- Label: `Status LED`
-- Direction: `Output`
+| Door | Physical pin | BCM GPIO | Notes |
+|---|---:|---:|---|
+| Building / street door | 11 | 17 | Relay IN1 |
+| Apartment door | 13 | 27 | Relay IN2 |
+| Relay power | 2 | 5V | Relay board VCC |
+| Relay ground | 6 | GND | Relay board GND |
+
+The GPIO service treats the relay board as active-low. A door unlock action pulses the configured output for 5 seconds.
 
 ## Power
 
 Use a **5V 2.5A** power supply. Underpowered supplies cause SD card corruption.
 
-## WiFi Note
-
-Pi 3 has **one WiFi chip** (Broadcom BCM43438). This project uses a virtual `uap0`
-interface for the hotspot alongside `wlan0` for the client connection — both run
-simultaneously thanks to the Broadcom driver's AP+STA support.
-
-If you experience instability, plug in a **USB WiFi dongle** and configure
-`hostapd` to use that interface instead, freeing `wlan0` for client-only use.
-
 ## Reed Sensor (Door Open/Closed)
 
-- One side of the reed switch connects to Pin 14 (GND).
-- The other side connects to Pin 16 (GPIO 23, input).
-- Enable the internal pull-up resistor in software.
-- When the door is closed, the circuit is open and GPIO reads HIGH; when open, the circuit closes and GPIO reads LOW (or vice versa, depending on switch orientation).
+The reed switch records whether the door is open or closed.
 
-See docs/GPIO_PINOUT.md for a full table of assignments.
+| Reed wire | Physical pin | BCM GPIO | Notes |
+|---|---:|---:|---|
+| Signal | 16 | 23 | Input with internal pull-up |
+| Ground | 14 | GND | Ground side |
+
+The service uses:
+
+```python
+gpiozero.Button(23, pull_up=True, bounce_time=0.2)
+```
+
+Current software convention:
+
+| Electrical state | Logged door state |
+|---|---|
+| Circuit closed to GND | `open` |
+| Circuit open | `closed` |
+
+If your reed switch is mounted in the opposite orientation, either reverse the physical mounting or change the state mapping in `backend/services/reed_sensor_service.py`.
+
+## Enable GPIO Runtime
+
+On Raspberry Pi, start with the Pi overlay:
+
+```bash
+docker compose -f docker-compose.prod.yml -f docker-compose.pi.yml up -d
+```
+
+This overlay sets `ENABLE_GPIO=true`, uses the real `gpiozero` driver, maps `/dev/gpiomem`, and mounts host D-Bus for dashboard WiFi management.
+
+Do not add `privileged: true` for this app's normal GPIO usage.
+
+## Reed Sensor Test
+
+1. Confirm the signal wire is on physical pin 16 / GPIO23.
+2. Confirm the other wire is on physical pin 14 / GND.
+3. Start the app with the Pi overlay.
+4. Log in as admin.
+5. Open Admin Dashboard -> Door Log.
+6. Open and close the door and confirm the state changes.
+
+Manual shell check inside the running container:
+
+```bash
+docker exec -it raspi-hotspot python
+```
+
+```python
+from gpiozero import Button
+
+sensor = Button(23, pull_up=True)
+print("open" if sensor.is_pressed else "closed")
+```
+
+## WiFi Hardware Note
+
+Pi 3 has one onboard WiFi chip. The optional hotspot script tries to use a virtual `uap0` AP interface alongside `wlan0`.
+
+If hotspot mode is unstable, use a USB WiFi adapter with AP mode support. The main Docker deployment does not require hotspot mode.

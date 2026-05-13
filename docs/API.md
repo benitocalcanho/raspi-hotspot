@@ -100,7 +100,7 @@ Returns last 100 audit events for the authenticated user.
 ## GPIO (`/api/gpio`) — requires `ENABLE_GPIO=true`
 
 ### GET `/gpio/pins`
-All configured pins.
+All configured pins. Requires any authenticated user.
 
 ### POST `/gpio/pins` — admin only
 ```json
@@ -108,10 +108,19 @@ All configured pins.
 ```
 
 ### GET `/gpio/pins/:pin_number`
-Read current state.
+Read current state. Requires any authenticated user.
 
 ### POST `/gpio/pins/:pin_number/toggle`
-Toggle output pin state (fires a 5-second relay pulse for output pins).
+Toggle an output pin. Requires any authenticated user.
+
+### POST `/gpio/pins/:pin_number/set`
+Explicitly set an output pin on or off. Requires any authenticated user.
+
+```json
+{ "state": true }
+```
+
+The guest dashboard uses this endpoint to turn a relay on, wait 5 seconds in the browser, then turn it off.
 
 ### DELETE `/gpio/pins/:pin_number` — admin only
 Remove pin configuration.
@@ -121,7 +130,7 @@ Remove pin configuration.
 ## WiFi (`/api/wifi`)
 
 ### GET `/wifi/status`
-Current wlan0 connection state. No auth required.
+Current WiFi connection state. Requires any authenticated user.
 
 ### GET `/wifi/scan`
 List available WiFi networks (sorted by signal strength). No auth required.
@@ -181,21 +190,27 @@ Manually trigger iCal sync. Returns a detail object describing every change made
 ```
 `status` values: `"ok"` · `"no_url"` (iCal URL not configured) · `"fetch_error"` (HTTP/network failure, `error` field has detail) · `"error"` (unexpected failure).
 
-### Door Sensor API
+## Door Sensor (`/api/door`) — admin role required
 
-#### GET /api/door/status
-- Returns the current state of the door sensor and the timestamp of the last event.
-- Example response:
-  {
-    "state": "open",
-    "timestamp": "2026-05-13T12:34:56.789Z"
-  }
+### GET `/door/status`
+Returns the current reed sensor state, setup status, GPIO pin, and timestamp of the last recorded event.
 
-#### GET /api/door/log
-- Returns a list of recent door open/close events (most recent first).
-- Query params: `limit` (default 50), `offset` (default 0)
-- Example response:
-  [
-    { "timestamp": "2026-05-13T12:34:56.789Z", "state": "open" },
-    { "timestamp": "2026-05-13T12:30:00.123Z", "state": "closed" }
-  ]
+```json
+{
+  "state": "open",
+  "enabled": true,
+  "pin_number": 23,
+  "error": null,
+  "timestamp": "2026-05-13T12:34:56.789Z"
+}
+```
+
+### GET `/door/log?limit=50&offset=0`
+Returns recent door open/close events, most recent first.
+
+```json
+[
+  { "timestamp": "2026-05-13T12:34:56.789Z", "state": "open", "source": "sensor" },
+  { "timestamp": "2026-05-13T12:30:00.123Z", "state": "closed", "source": "sensor" }
+]
+```

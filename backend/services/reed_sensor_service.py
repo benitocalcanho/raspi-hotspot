@@ -1,41 +1,109 @@
-from datetime import datetime
+"""
+Reed switch door sensor service.
+
+The service is intentionally lazy: GPIO hardware is initialized from
+create_app(), after Flask and the database are ready. This keeps route imports
+safe on non-Pi machines and gives gpiozero callbacks a real app context.
+"""
+from __future__ import annotations
+
+import logging
+import os
+from datetime import datetime, timezone
+from typing import Optional
+
 from models import db
 from models.door_log import DoorLog
-import os
 
-REED_GPIO = 23
+logger = logging.getLogger(__name__)
 
-try:
-    from gpiozero import Button
-    _use_mock = os.getenv("GPIO_MODE", "gpiozero") != "gpiozero"
-    if _use_mock:
-        from gpiozero.pins.mock import MockFactory
-        from gpiozero import Device
-        Device.pin_factory = MockFactory()
-    button = Button(REED_GPIO, pull_up=True)
-except ImportError:
-    button = None
+DEFAULT_REED_GPIO = 23
 
-_last_logged_state = None
 
-def _log_state(state: str):
-    global _last_logged_state
-    if state != _last_logged_state:
-        db.session.add(DoorLog(timestamp=datetime.utcnow(), state=state, source="sensor"))
-        db.session.commit()
-        _last_logged_state = state
+class ReedSensorService:
+    def __init__(self) -> None:
+        self.app = None
+        self.button = None
+        self.pin_number = DEFAULT_REED_GPIO
+        self.enabled = False
+        self.error: Optional[str] = None
+        self._last_logged_state: Optional[str] = None
 
-def _on_open():
-    _log_state("open")
+    def init_app(self, app) -> None:
+        """Initialize GPIO monitoring if the deployment enables GPIO."""
+        self.app = app
+        self.pin_number = int(os.getenv("REED_GPIO", DEFAULT_REED_GPIO))
 
-def _on_closed():
-    _log_state("closed")
+        if not app.config.get("ENABLE_GPIO", False):
+            self.enabled = False
+            self.error = None
+            app.logger.info("Door reed sensor disabled because ENABLE_GPIO=false.")
+            return
 
-if button:
-    button.when_pressed = _on_open   # circuit closes (LOW) when door opens
-    button.when_released = _on_closed  # circuit opens (HIGH) when door closes
+        try:
+            from gpiozero import Button, Device
 
-def get_state():
-    if not button:
-        return "unknown"
-    return "open" if button.is_pressed else "closed"
+            if os.getenv("GPIO_MODE", app.config.get("GPIO_MODE", "gpiozero")) != "gpiozero":
+                from gpiozero.pins.mock import MockFactory
+
+                Device.pin_factory = MockFactory()
+
+            self.button = Button(self.pin_number, pull_up=True, bounce_time=0.2)
+            self.button.when_pressed = self._handle_pressed
+            self.button.when_released = self._handle_released
+            self.enabled = True
+            self.error = None
+            initial_state = self.get_state()
+            self._last_logged_state = initial_state if initial_state != "unknown" else None
+            app.logger.info("Door reed sensor initialized on BCM%s.", self.pin_number)
+        except Exception as exc:
+            self.button = None
+            self.enabled = False
+            self.error = str(exc)
+            app.logger.warning("Door reed sensor unavailable: %s", exc)
+
+    def get_state(self) -> str:
+        if not self.button:
+            return "unknown"
+        return self._state_from_pressed(bool(self.button.is_pressed))
+
+    def status(self) -> dict:
+        return {
+            "state": self.get_state(),
+            "enabled": self.enabled,
+            "pin_number": self.pin_number,
+            "error": self.error,
+        }
+
+    def _state_from_pressed(self, is_pressed: bool) -> str:
+        # With pull_up=True and the switch wired to GND, gpiozero reports
+        # pressed when the circuit is closed. The current wiring convention is
+        # closed circuit = door open.
+        return "open" if is_pressed else "closed"
+
+    def _handle_pressed(self) -> None:
+        self._log_state("open")
+
+    def _handle_released(self) -> None:
+        self._log_state("closed")
+
+    def _log_state(self, state: str) -> None:
+        if state == self._last_logged_state:
+            return
+        if not self.app:
+            logger.warning("Door sensor event ignored because app is not initialized.")
+            return
+
+        with self.app.app_context():
+            db.session.add(
+                DoorLog(
+                    timestamp=datetime.now(timezone.utc),
+                    state=state,
+                    source="sensor",
+                )
+            )
+            db.session.commit()
+            self._last_logged_state = state
+
+
+reed_sensor = ReedSensorService()

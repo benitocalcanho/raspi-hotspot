@@ -9,10 +9,11 @@ A plug-and-play **Raspberry Pi** web app for short-term rental hosts. Guests con
 - **Automatic guest accounts** — Syncs from a private iCal URL; guest account is active for the full duration of the calendar event and deleted once the event ends
 - **Calendar-free fallback** — Manual user creation still works
 - **Role-based access** — `admin` / `user` / `cleaner` / `guest`
-- **Admin dashboard** — User management, audit log, calendar sync, schedule settings, WiFi network management, door image uploads
+- **Admin dashboard** — User management, audit log, calendar sync, schedule settings, WiFi network management, door image uploads, door sensor log
 - **Settings GUI** — Paste all secrets (iCal URL, ngrok token, SMTP, etc.) in the browser — no SSH or .env editing needed after initial setup
 - **Audit log** — Every login, creation, and deletion recorded with IP and device info
 - **GPIO relay control** — Unlock door buttons trigger configurable GPIO pins for 5 seconds
+- **Door sensor log** — Optional reed switch on GPIO23 records open/closed state changes
 - **Remote access** — Admin dashboard via ngrok public URL (primary); Tailscale as backup for admin access if ngrok is unavailable
 
 ## How It Works
@@ -35,7 +36,8 @@ A plug-and-play **Raspberry Pi** web app for short-term rental hosts. Guests con
   Admin ─Tailscale──▶  ├── /api/uploads (door images)      │
   (backup SSH)       │  ├── /api/wifi    (WiFi management)  │
                      │  ├── /api/gpio    (relay control)    │
-                     │  └── /api/calendar (iCal sync)       │
+                     │  ├── /api/calendar (iCal sync)       │
+                     │  └── /api/door    (reed sensor log)  │
                      │                                      │
                      │  Vue 3 SPA (served by Flask)         │
                      │  SQLite Database                     │
@@ -52,25 +54,29 @@ raspi-hotspot/
 ├── backend/
 │   ├── app.py                  # Flask application factory + SPA serving
 │   ├── config.py               # Non-sensitive defaults; all secrets in DB
-│   ├── requirements.txt        # Python dependencies
+│   ├── requirements.txt        # Core Python dependencies
+│   ├── requirements-pi.txt     # Core + Raspberry Pi GPIO dependencies
 │   ├── uploads/                # Door images uploaded via admin dashboard
 │   ├── models/
 │   │   ├── user.py             # User model (role, created_by, is_active, valid_until)
-│   │   ├── setting.py          # DB-backed key/value store for all runtime secrets
-│   │   └── audit_log.py        # Login/event audit trail
+│   │   ├── setting.py          # DB-backed key/value store for runtime settings
+│   │   ├── audit_log.py        # Login/event audit trail
+│   │   └── door_log.py         # Reed sensor open/closed events
 │   ├── routes/
 │   │   ├── auth.py             # Login, logout, /me — case-insensitive
 │   │   ├── admin.py            # User CRUD, settings PATCH, scheduler restart
 │   │   ├── user.py             # Dashboard endpoint (all roles)
 │   │   ├── uploads.py          # Door image upload + serve
 │   │   ├── calendar_sync.py    # Manual sync trigger
-│   │   ├── wifi.py             # WiFi status (hotspot) + admin WiFi management
-│   │   └── gpio.py             # GPIO pin toggle (optional, guarded by ENABLE_GPIO)
+│   │   ├── wifi.py             # WiFi status + admin WiFi management
+│   │   ├── gpio.py             # GPIO pin control (guarded by ENABLE_GPIO)
+│   │   └── door.py             # Door sensor status/log endpoints
 │   ├── services/
 │   │   ├── calendar_service.py # iCal fetch, guest create/delete, APScheduler
 │   │   ├── gpio_service.py     # gpiozero abstraction with mock fallback
 │   │   ├── audit_service.py    # Log creation helpers
-│   │   └── wifi_service.py     # nmcli wrappers (connect, save, list, delete)
+│   │   ├── wifi_service.py     # nmcli wrappers (connect, save, list, delete)
+│   │   └── reed_sensor_service.py # gpiozero reed switch monitoring
 │   └── utils/
 │       └── decorators.py       # require_roles
 ├── frontend/
@@ -80,7 +86,7 @@ raspi-hotspot/
 │   │   ├── views/
 │   │   │   ├── Login.vue
 │   │   │   ├── GuestDashboard.vue   # Two door cards, full-screen, mobile-first
-│   │   │   ├── AdminDashboard.vue   # Tabs: Users, Audit, Calendar, ngrok, Email, WiFi, Doors
+│   │   │   ├── AdminDashboard.vue   # Tabs: Users, Audit, Calendar, ngrok, Email, WiFi, Doors, Door Log
 │   │   │   ├── CleanerDashboard.vue
 │   │   │   └── UserDashboard.vue
 │   │   ├── components/
@@ -90,6 +96,7 @@ raspi-hotspot/
 │   │   │   ├── UserTable.vue
 │   │   │   ├── AuditLog.vue
 │   │   │   ├── GpioPanel.vue
+│   │   │   ├── DoorLog.vue
 │   │   │   └── ButtonHistoryTable.vue
 │   │   ├── router/index.js          # Role-gated routes
 │   │   └── stores/auth.js           # Pinia auth store
@@ -98,8 +105,7 @@ raspi-hotspot/
 ├── scripts/                    # One-time Raspberry Pi setup scripts
 ├── systemd/                    # Systemd service units
 └── config/
-    ├── .env                    # Defaults pre-filled; edit SECRET_KEY for production
-    └── .env.example            # Template
+    └── .env                    # Used by local/manual development compose
 ```
 
 ## Quick Install on Raspberry Pi
@@ -115,7 +121,7 @@ cd raspi-hotspot
 # Desktop / no GPIO:
 docker compose -f docker-compose.prod.yml up -d
 
-# Raspberry Pi (GPIO relays):
+# Raspberry Pi (GPIO relays, reed sensor, WiFi management):
 docker compose -f docker-compose.prod.yml -f docker-compose.pi.yml up -d
 ```
 
@@ -129,13 +135,13 @@ cd raspi-hotspot
 sudo bash scripts/01-setup-pi.sh
 ```
 
-See [docs/INSTALLATION.md](docs/INSTALLATION.md) for full instructions.
+See [docs/INSTALLATION.md](docs/INSTALLATION.md) for the canonical install guide.
 
 For repeatable update workflows on Raspberry Pi, see [docs/DEPLOY_PI.md](docs/DEPLOY_PI.md).
 
 ## Environment Variables
 
-Only the minimum bootstrap variables need to be in `config/.env`. Everything else is set in the dashboard.
+Only bootstrap variables belong in environment variables. Everything else is set in the dashboard.
 
 | Variable | Default | Description |
 |---|---|---|
@@ -143,6 +149,7 @@ Only the minimum bootstrap variables need to be in `config/.env`. Everything els
 | `JWT_SECRET_KEY` | `raspi-hotspot-default-jwt-key-change-me` | JWT signing key — **change in production** |
 | `ADMIN_USERNAME` | `admin` | Bootstrap admin username |
 | `ADMIN_PASSWORD` | `admin12345` | Bootstrap admin password |
+| `APP_TIMEZONE` | auto-detected | Optional IANA timezone override |
 
 ## Calendar Guest Sync
 
@@ -203,14 +210,14 @@ cd frontend && npm run build
 
 | GPIO Pin | Function |
 |---|---|
-| Configurable | Building door relay (5 s pulse) |
-| Configurable | Apartment door relay (5 s pulse) |
+| GPIO17 | Building door relay (5 s pulse) |
+| GPIO27 | Apartment door relay (5 s pulse) |
+| GPIO23 | Reed switch door sensor |
 
-Set `ENABLE_GPIO=true` to activate relay routes. On non-Pi hardware the service falls back to mock mode automatically.
+On Raspberry Pi, use the Pi compose overlay to set `ENABLE_GPIO=true`, map `/dev/gpiomem`, and use real `gpiozero` hardware access.
 
 See [docs/HARDWARE.md](docs/HARDWARE.md) for wiring diagrams.
 
 ## License
 
 MIT
-

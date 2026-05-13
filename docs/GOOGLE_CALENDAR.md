@@ -32,7 +32,7 @@ No Google API credentials, no OAuth, no JSON files — just a URL you paste once
 
 ### 2 — Paste the URL in the dashboard
 
-Admin Dashboard → **Calendar Sync** tab → **Google Calendar (iCal)** section → paste URL → **Save**.
+Admin Dashboard -> **Calendar Sync** tab -> **Google Calendar (iCal)** section -> paste URL -> **Save**.
 
 No restart required. The next scheduled sync will use the new URL.
 
@@ -87,13 +87,13 @@ The cleaner account is toggled automatically so the cleaner can access the prope
 2. **New guest checks in** (check-in job runs, active event found) — cleaner account is deactivated. Guest account is created or updated. The cleaner loses access while a guest is in the property.
 3. **Multi-day stay** — if the checkout job runs while the event still covers today, the guest account is untouched and the cleaner remains deactivated for the full duration.
 
-The cleaner username and password are configured in **Settings → Cleaner Account**.
+The cleaner username and password are configured in **Calendar Sync -> Cleaner Account**.
 
 ---
 
 ## Manual Sync
 
-Admin Dashboard → **Calendar Sync** tab → **Sync Now** button.
+Admin Dashboard -> **Calendar Sync** tab -> **Sync Now**.
 
 After syncing, the dashboard shows a summary of exactly what happened:
 - Guest created or kept (with event title and expiry date)
@@ -107,18 +107,12 @@ Useful after adding a new event, extending a stay, or changing the iCal URL.
 
 ## Changing Schedule Times
 
-Admin Dashboard → **Calendar Sync** tab → **Guest Schedule** section → update times → **Save** → **Apply Schedule Changes**.
+Admin Dashboard -> **Calendar Sync** tab -> **Guest Schedule** section -> update times -> **Save** -> **Apply Schedule Changes**.
 
 Changes take effect immediately without restarting the app.
 
-
----
-
-## Manual Sync
-
-Admin Dashboard → Calendar Sync → **Sync Now**
-
 Or via API:
+
 ```bash
 curl -X POST http://100.x.x.x:5000/api/calendar/sync \
   -H "Authorization: Bearer <admin_jwt>"
