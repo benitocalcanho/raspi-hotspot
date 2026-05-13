@@ -9,6 +9,8 @@ from __future__ import annotations
 
 import logging
 import os
+import threading
+import time
 from datetime import datetime, timezone
 from typing import Optional
 
@@ -28,6 +30,7 @@ class ReedSensorService:
         self.enabled = False
         self.error: Optional[str] = None
         self._last_logged_state: Optional[str] = None
+        self._poll_thread = None
 
     def init_app(self, app) -> None:
         """Initialize GPIO monitoring if the deployment enables GPIO."""
@@ -54,7 +57,9 @@ class ReedSensorService:
             self.enabled = True
             self.error = None
             initial_state = self.get_state()
-            self._last_logged_state = initial_state if initial_state != "unknown" else None
+            if initial_state != "unknown":
+                self._log_state(initial_state, source="sensor_startup")
+            self._start_polling()
             app.logger.info("Door reed sensor initialized on BCM%s.", self.pin_number)
         except Exception as exc:
             self.button = None
@@ -68,12 +73,19 @@ class ReedSensorService:
         return self._state_from_pressed(bool(self.button.is_pressed))
 
     def status(self) -> dict:
+        self.sync_current_state(source="sensor_status")
         return {
             "state": self.get_state(),
             "enabled": self.enabled,
             "pin_number": self.pin_number,
             "error": self.error,
         }
+
+    def sync_current_state(self, source: str = "sensor_poll") -> None:
+        """Log the current state if it changed since the last recorded state."""
+        state = self.get_state()
+        if state != "unknown":
+            self._log_state(state, source=source)
 
     def _state_from_pressed(self, is_pressed: bool) -> str:
         # With pull_up=True and the switch wired to GND, gpiozero reports
@@ -82,12 +94,12 @@ class ReedSensorService:
         return "open" if is_pressed else "closed"
 
     def _handle_pressed(self) -> None:
-        self._log_state("open")
+        self._log_state("open", source="sensor")
 
     def _handle_released(self) -> None:
-        self._log_state("closed")
+        self._log_state("closed", source="sensor")
 
-    def _log_state(self, state: str) -> None:
+    def _log_state(self, state: str, source: str = "sensor") -> None:
         if state == self._last_logged_state:
             return
         if not self.app:
@@ -99,11 +111,28 @@ class ReedSensorService:
                 DoorLog(
                     timestamp=datetime.now(timezone.utc),
                     state=state,
-                    source="sensor",
+                    source=source,
                 )
             )
             db.session.commit()
             self._last_logged_state = state
+
+    def _start_polling(self) -> None:
+        if self._poll_thread and self._poll_thread.is_alive():
+            return
+
+        def poll() -> None:
+            while True:
+                time.sleep(1.0)
+                if not self.enabled:
+                    continue
+                try:
+                    self.sync_current_state(source="sensor_poll")
+                except Exception as exc:
+                    logger.warning("Door reed sensor poll failed: %s", exc)
+
+        self._poll_thread = threading.Thread(target=poll, daemon=True)
+        self._poll_thread.start()
 
 
 reed_sensor = ReedSensorService()
