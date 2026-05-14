@@ -476,10 +476,24 @@ def update_settings():
         updated.append(key)
     db.session.commit()
 
-    # Restart ngrok tunnel if its config changed
+    # Restart ngrok tunnel if its config changed. Do the slow tunnel open in
+    # the background so the settings save button returns quickly on small Pis.
+    ngrok_restarting = False
     if "NGROK_AUTHTOKEN" in updated or "NGROK_STATIC_DOMAIN" in updated:
+        app = current_app._get_current_object()
+        port = current_app.config.get("APP_PORT", 5000)
         ngrok_service.stop_tunnel()
-        ngrok_service.start_tunnel(port=current_app.config.get("APP_PORT", 5000), force=True)
+
+        def restart_ngrok_async() -> None:
+            try:
+                with app.app_context():
+                    ngrok_service.start_tunnel(port=port, force=True)
+            except Exception as exc:
+                app.logger.warning("ngrok async restart failed: %s", exc)
+
+        import threading
+        threading.Thread(target=restart_ngrok_async, daemon=True).start()
+        ngrok_restarting = True
 
     log_event("settings_updated", user_id=admin_id, detail={"keys": updated})
-    return jsonify({"updated": updated}), 200
+    return jsonify({"updated": updated, "ngrok_restarting": ngrok_restarting}), 200

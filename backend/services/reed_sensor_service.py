@@ -120,11 +120,10 @@ class ReedSensorService:
                 try:
                     with self.app.app_context():
                         self.poll_once()
+                        db.session.remove()
                 except Exception as exc:
                     self.error = str(exc)
                     self.app.logger.warning("Door reed sensor poll failed: %s", exc)
-                finally:
-                    db.session.remove()
 
         self._poll_thread = threading.Thread(target=poll, daemon=True)
         self._poll_thread.start()

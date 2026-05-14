@@ -28,10 +28,13 @@ If you use Raspberry Pi Connect for remote shell access, enable user lingering:
 loginctl enable-linger
 ```
 
-Install Docker:
+Install Docker from the Raspberry Pi OS packages. Do **not** use `curl -fsSL https://get.docker.com | sh` on Raspberry Pi OS 32-bit Trixie; Docker's upstream Raspbian repo may not provide a `trixie` release for this board.
 
 ```bash
-curl -fsSL https://get.docker.com | sh
+sudo rm -f /etc/apt/sources.list.d/docker.list
+sudo apt update
+sudo apt install -y docker.io docker-compose
+sudo systemctl enable --now docker
 sudo usermod -aG docker "$USER"
 sudo reboot
 ```
