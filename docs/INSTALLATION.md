@@ -20,8 +20,17 @@ Recommended Imager choices:
 | Imager step | Selection |
 |---|---|
 | Device | Your Raspberry Pi model |
-| OS | Raspberry Pi OS Lite, preferably 64-bit |
+| OS | Raspberry Pi OS Lite |
 | Storage | The microSD card for the Pi |
+
+OS architecture:
+
+| Raspberry Pi | Recommended OS |
+|---|---|
+| Raspberry Pi 2 B / older 32-bit-only boards | Raspberry Pi OS Lite 32-bit |
+| Raspberry Pi 3, 4, 5 | Raspberry Pi OS Lite 64-bit |
+
+For Raspberry Pi 2 B, also read [INSTALL_PI2B.md](INSTALL_PI2B.md). It uses the same Docker deployment, but the OS and expectations are different because the board is 32-bit and has no onboard WiFi.
 
 Before writing the card, open **OS Customisation** and set:
 
@@ -45,6 +54,16 @@ ssh pi@<pi-ip>
 
 or open Raspberry Pi Connect in a browser and use the remote shell.
 
+## First Boot Setup
+
+Start from a clean Raspberry Pi OS Lite shell. The Lite image is intentionally minimal, so install basic tools before cloning the app:
+
+```bash
+sudo apt update
+sudo apt upgrade -y
+sudo apt install -y git curl ca-certificates
+```
+
 For headless Raspberry Pi OS Lite installs, enable user lingering so Raspberry Pi Connect can remain available after a reboot before you manually log in:
 
 ```bash
@@ -62,7 +81,6 @@ Do not add `privileged: true` for normal GPIO use. `/dev/gpiomem` is enough for 
 ## Prerequisites
 
 - Raspberry Pi OS Lite, prepared with WiFi and SSH through Raspberry Pi Imager, or another Linux host with Docker
-- Docker and Docker Compose
 - Network access to pull the image from GitHub Container Registry
 - For GPIO hardware: Raspberry Pi with `/dev/gpiomem`
 
@@ -70,7 +88,7 @@ Install Docker on Raspberry Pi:
 
 ```bash
 curl -fsSL https://get.docker.com | sh
-sudo usermod -aG docker pi
+sudo usermod -aG docker "$USER"
 sudo reboot
 ```
 

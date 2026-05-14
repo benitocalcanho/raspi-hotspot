@@ -115,10 +115,19 @@ invisible-key/
 **Option A — Docker (recommended)**
 
 Use Raspberry Pi Imager first:
-- choose Raspberry Pi OS Lite, preferably 64-bit
+- choose Raspberry Pi OS Lite 32-bit for Raspberry Pi 2 B / older 32-bit-only boards
+- choose Raspberry Pi OS Lite 64-bit for Raspberry Pi 3/4/5
 - set hostname, WiFi SSID/password, WiFi country, timezone, and keyboard
 - enable SSH
 - enable/link Raspberry Pi Connect if Imager offers it
+
+On a fresh Raspberry Pi OS Lite shell, install the basic tools first:
+
+```bash
+sudo apt update
+sudo apt upgrade -y
+sudo apt install -y git curl ca-certificates
+```
 
 Then install the app. No build tools, Node.js, or Python needed on the Pi.
 
@@ -143,7 +152,7 @@ cd invisible-key
 sudo bash scripts/01-setup-pi.sh
 ```
 
-See [docs/INSTALLATION.md](docs/INSTALLATION.md) for the canonical install guide.
+See [docs/INSTALLATION.md](docs/INSTALLATION.md) for the canonical install guide. For Raspberry Pi 2 B, also see [docs/INSTALL_PI2B.md](docs/INSTALL_PI2B.md).
 
 For repeatable update workflows on Raspberry Pi, see [docs/DEPLOY_PI.md](docs/DEPLOY_PI.md).
 
