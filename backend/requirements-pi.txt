@@ -2,4 +2,3 @@
 
 # Raspberry Pi hardware GPIO support
 gpiozero==2.0
-lgpio==0.2.2.0

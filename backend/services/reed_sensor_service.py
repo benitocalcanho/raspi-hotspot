@@ -1,9 +1,8 @@
 """
 Reed switch door sensor service.
 
-The service is intentionally lazy: GPIO hardware is initialized from
-create_app(), after Flask and the database are ready. This keeps route imports
-safe on non-Pi machines and gives gpiozero callbacks a real app context.
+The service polls GPIO23 through gpio_service, so it uses the same hardware
+path as the existing GPIO admin page and does not claim the pin separately.
 """
 from __future__ import annotations
 
@@ -25,7 +24,6 @@ DEFAULT_REED_GPIO = 23
 class ReedSensorService:
     def __init__(self) -> None:
         self.app = None
-        self.button = None
         self.pin_number = DEFAULT_REED_GPIO
         self.enabled = False
         self.error: Optional[str] = None
@@ -44,33 +42,26 @@ class ReedSensorService:
             return
 
         try:
-            from gpiozero import Button, Device
-
-            if os.getenv("GPIO_MODE", app.config.get("GPIO_MODE", "gpiozero")) != "gpiozero":
-                from gpiozero.pins.mock import MockFactory
-
-                Device.pin_factory = MockFactory()
-
-            self.button = Button(self.pin_number, pull_up=True, bounce_time=0.2)
-            self.button.when_pressed = self._handle_pressed
-            self.button.when_released = self._handle_released
+            self._ensure_pin_configured()
+            initial_state = self.get_state()
+            self._last_logged_state = initial_state if initial_state != "unknown" else None
             self.enabled = True
             self.error = None
-            initial_state = self.get_state()
-            if initial_state != "unknown":
-                self._log_state(initial_state, source="sensor_startup")
             self._start_polling()
-            app.logger.info("Door reed sensor initialized on BCM%s.", self.pin_number)
+            app.logger.info("Door reed sensor polling GPIO%s.", self.pin_number)
         except Exception as exc:
-            self.button = None
             self.enabled = False
             self.error = str(exc)
             app.logger.warning("Door reed sensor unavailable: %s", exc)
 
     def get_state(self) -> str:
-        if not self.button:
+        try:
+            from services.gpio_service import read_pin_state
+
+            return self._state_from_pressed(bool(read_pin_state(self.pin_number)))
+        except Exception as exc:
+            self.error = str(exc)
             return "unknown"
-        return self._state_from_pressed(bool(self.button.is_pressed))
 
     def status(self) -> dict:
         self.sync_current_state(source="sensor_status")
@@ -88,16 +79,9 @@ class ReedSensorService:
             self._log_state(state, source=source)
 
     def _state_from_pressed(self, is_pressed: bool) -> str:
-        # With pull_up=True and the switch wired to GND, gpiozero reports
-        # pressed when the circuit is closed. The current wiring convention is
-        # closed circuit = door open.
+        # The GPIO admin page reports True when the input is active. Current
+        # wiring convention: active input = door open.
         return "open" if is_pressed else "closed"
-
-    def _handle_pressed(self) -> None:
-        self._log_state("open", source="sensor")
-
-    def _handle_released(self) -> None:
-        self._log_state("closed", source="sensor")
 
     def _log_state(self, state: str, source: str = "sensor") -> None:
         if state == self._last_logged_state:
@@ -116,6 +100,16 @@ class ReedSensorService:
             )
             db.session.commit()
             self._last_logged_state = state
+
+    def _ensure_pin_configured(self) -> None:
+        from models.gpio_pin import GpioPin
+        from services.gpio_service import configure_pin
+
+        pin = GpioPin.query.filter_by(pin_number=self.pin_number).first()
+        if not pin:
+            configure_pin(self.pin_number, "Door Sensor", "input")
+        elif pin.direction != "input":
+            raise ValueError(f"GPIO{self.pin_number} is configured as {pin.direction}, expected input.")
 
     def _start_polling(self) -> None:
         if self._poll_thread and self._poll_thread.is_alive():
