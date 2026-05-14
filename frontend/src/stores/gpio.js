@@ -22,10 +22,13 @@ export const useGpioStore = defineStore('gpio', () => {
     }
   }
 
-  async function togglePin(pinNumber) {
-    const { data } = await api.post(`/gpio/pins/${pinNumber}/toggle`)
+  async function pulsePin(pinNumber, duration = 20) {
+    const { data } = await api.post(`/gpio/pins/${pinNumber}/pulse`, { duration })
     const idx = pins.value.findIndex(p => p.pin_number === pinNumber)
     if (idx !== -1) pins.value[idx] = data
+    setTimeout(() => {
+      fetchPins().catch(() => {})
+    }, (duration * 1000) + 500)
   }
 
   async function addPin(pinNumber, label, direction) {
@@ -38,5 +41,5 @@ export const useGpioStore = defineStore('gpio', () => {
     pins.value = pins.value.filter(p => p.pin_number !== pinNumber)
   }
 
-  return { pins, loading, error, fetchPins, togglePin, addPin, deletePin }
+  return { pins, loading, error, fetchPins, pulsePin, addPin, deletePin }
 })

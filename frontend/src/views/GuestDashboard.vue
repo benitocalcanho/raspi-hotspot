@@ -75,10 +75,7 @@ async function unlock(door) {
   const pinMap = { building: 17, apartment: 27 }
   const pin = pinMap[door]
   if (pin) {
-    api.post(`/gpio/pins/${pin}/set`, { state: true }).catch(() => {})
-    setTimeout(() => {
-      api.post(`/gpio/pins/${pin}/set`, { state: false }).catch(() => {})
-    }, duration)
+    api.post(`/gpio/pins/${pin}/pulse`, { duration: duration / 1000 }).catch(() => {})
   }
 
   const start = performance.now()

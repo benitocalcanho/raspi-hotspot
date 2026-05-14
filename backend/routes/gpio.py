@@ -2,6 +2,9 @@
 GPIO routes — admin can configure pins; any authenticated user can read/toggle
 pins that are assigned to them (future: per-pin ACL).
 """
+import threading
+import time
+
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity, get_jwt
 from flask import current_app
@@ -12,6 +15,7 @@ from utils.decorators import require_roles
 from utils.timezone_utils import local_today
 
 gpio_bp = Blueprint("gpio", __name__)
+MAX_PULSE_SECONDS = 30
 
 
 @gpio_bp.route("/pins", methods=["GET"])
@@ -113,6 +117,36 @@ def set_pin(pin_number):
     except ValueError as exc:
         return jsonify({"error": str(exc)}), 400
     return jsonify(pin.to_dict()), 200
+
+
+@gpio_bp.route("/pins/<int:pin_number>/pulse", methods=["POST"])
+@jwt_required()
+def pulse_pin(pin_number):
+    """Turn an output on briefly, then force it off server-side."""
+    data = request.get_json(silent=True) or {}
+    requested = data.get("duration", 5)
+    try:
+        duration = min(max(float(requested), 0.1), MAX_PULSE_SECONDS)
+        pin = gpio_service.set_pin_state(pin_number, True)
+    except (TypeError, ValueError) as exc:
+        return jsonify({"error": str(exc)}), 400
+    except LookupError as exc:
+        return jsonify({"error": str(exc)}), 404
+
+    app = current_app._get_current_object()
+
+    def turn_off_later() -> None:
+        time.sleep(duration)
+        with app.app_context():
+            try:
+                gpio_service.set_pin_state(pin_number, False)
+                log_event("gpio_pulse_ended", detail={"pin": pin_number, "duration": duration})
+            except Exception as exc:
+                app.logger.warning("Failed to end GPIO%s pulse: %s", pin_number, exc)
+
+    threading.Thread(target=turn_off_later, daemon=True).start()
+    log_event("gpio_pulse_started", user_id=int(get_jwt_identity()), detail={"pin": pin_number, "duration": duration})
+    return jsonify({**pin.to_dict(), "pulse_duration": duration}), 200
 
 
 
