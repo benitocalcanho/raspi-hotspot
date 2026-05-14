@@ -316,7 +316,7 @@ def ngrok_restart():
     admin_id = int(get_jwt_identity())
     ngrok_service.stop_tunnel()
     from flask import current_app
-    url = ngrok_service.start_tunnel(port=current_app.config["APP_PORT"])
+    url = ngrok_service.start_tunnel(port=current_app.config["APP_PORT"], force=True)
     log_event("ngrok_restarted", user_id=admin_id, detail={"new_url": url})
     return jsonify({"url": url}), 200
 
@@ -479,7 +479,7 @@ def update_settings():
     # Restart ngrok tunnel if its config changed
     if "NGROK_AUTHTOKEN" in updated or "NGROK_STATIC_DOMAIN" in updated:
         ngrok_service.stop_tunnel()
-        ngrok_service.start_tunnel(port=current_app.config.get("APP_PORT", 5000))
+        ngrok_service.start_tunnel(port=current_app.config.get("APP_PORT", 5000), force=True)
 
     log_event("settings_updated", user_id=admin_id, detail={"keys": updated})
     return jsonify({"updated": updated}), 200

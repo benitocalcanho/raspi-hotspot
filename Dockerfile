@@ -69,6 +69,10 @@ COPY backend/requirements-pi.txt ./backend/requirements-pi.txt
 RUN pip install --upgrade pip --no-cache-dir && \
     pip install --no-cache-dir --prefer-binary -r backend/requirements-pi.txt
 
+# Install the ngrok agent during the image build. This keeps slow or flaky
+# runtime DNS/downloads off the Raspberry Pi when the tunnel starts.
+RUN python -c "from pyngrok import installer; installer.install_ngrok('/usr/local/bin/ngrok')"
+
 # ── Application source ───────────────────────────────────────────────────────
 COPY backend/ ./backend/
 COPY scripts/ ./scripts/
