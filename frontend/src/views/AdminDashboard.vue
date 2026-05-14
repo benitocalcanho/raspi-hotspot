@@ -37,14 +37,8 @@
       <button :class="{active: tab==='email'}" @click="tab='email'">Email</button>
       <button :class="{active: tab==='wifi'}" @click="tab='wifi'">WiFi Networks</button>
       <button :class="{active: tab==='doors'}" @click="tab='doors'">Door Images</button>
-      <button :class="{active: tab==='doorlog'}" @click="tab='doorlog'">Door Log</button>
       <button :class="{active: tab==='buttonhistory'}" @click="tab='buttonhistory'">Button History</button>
     </div>
-    <!-- Door Log tab -->
-    <section v-if="tab === 'doorlog'">
-      <h3>Door Log</h3>
-      <DoorLog />
-    </section>
 
     <!-- Users tab -->
     <section v-if="tab === 'users'">
@@ -152,7 +146,6 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import ButtonHistoryTable from '../components/ButtonHistoryTable.vue'
-import DoorLog from '../components/DoorLog.vue'
 import api from '../api.js'
 import UserTable from '../components/UserTable.vue'
 import AuditLog from '../components/AuditLog.vue'
