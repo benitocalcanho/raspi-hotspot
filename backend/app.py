@@ -204,16 +204,31 @@ def _seed_admin(app):
 
 
 def _seed_gpio(app):
-    """Create default relay pins on first install if none exist."""
+    """Ensure default GPIO pins exist without overwriting existing state."""
     from models.gpio_pin import GpioPin
-    if GpioPin.query.count() == 0:
-        defaults = [
-            GpioPin(pin_number=17, label="Street Door", direction="output", state=False),
-            GpioPin(pin_number=27, label="Apartment Door", direction="output", state=False),
-        ]
-        db.session.add_all(defaults)
+
+    defaults = [
+        (17, "Street Door", "output"),
+        (27, "Apartment Door", "output"),
+        (23, "Door Sensor", "input"),
+    ]
+    changed = False
+    for pin_number, label, direction in defaults:
+        pin = GpioPin.query.filter_by(pin_number=pin_number).first()
+        if not pin:
+            db.session.add(GpioPin(pin_number=pin_number, label=label, direction=direction, state=False))
+            changed = True
+        else:
+            if pin.label != label:
+                pin.label = label
+                changed = True
+            if pin.direction != direction:
+                pin.direction = direction
+                changed = True
+
+    if changed:
         db.session.commit()
-        app.logger.info("Default GPIO relay pins seeded.")
+        app.logger.info("Default GPIO pins ensured.")
 
 
 def _migrate_calendar_users_to_guest(app):

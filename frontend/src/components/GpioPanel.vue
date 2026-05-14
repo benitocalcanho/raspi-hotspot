@@ -12,6 +12,14 @@
       <p v-if="addError" class="error">{{ addError }}</p>
     </div>
 
+    <div class="toolbar">
+      <button class="btn-sm" @click="refreshPins" :disabled="gpioStore.loading">
+        {{ gpioStore.loading ? 'Refreshing...' : 'Refresh' }}
+      </button>
+    </div>
+
+    <p v-if="gpioStore.error" class="error">{{ gpioStore.error }}</p>
+
     <div v-if="gpioStore.pins.length" class="pin-grid">
       <div v-for="pin in gpioStore.pins" :key="pin.pin_number" class="pin-card">
         <div class="pin-header">
@@ -36,7 +44,7 @@
         </div>
       </div>
     </div>
-    <p v-else class="empty">{{ $t('no_gpio_pins') }}</p>
+    <p v-else-if="!gpioStore.loading" class="empty">{{ $t('no_gpio_pins') }}</p>
   </div>
 </template>
 
@@ -63,7 +71,15 @@ const newPin = ref({
   direction: 'output' // Pin direction ('output' or 'input')
 })
 
-onMounted(() => gpioStore.fetchPins())
+onMounted(refreshPins)
+
+async function refreshPins() {
+  try {
+    await gpioStore.fetchPins()
+  } catch {
+    // Store exposes the user-facing error.
+  }
+}
 
 // Add a new pin using the form values
 async function addPin() {
@@ -92,6 +108,9 @@ function pinStateLabel(pin) {
 h4 { width: 100%; margin: 0; font-size: 0.9rem; color: #555; }
 .add-form input, .add-form select { padding: 0.45rem 0.7rem; border: 1px solid #ddd; border-radius: 5px; font-size: 0.9rem; }
 .btn-green { padding: 0.45rem 0.9rem; background: #27ae60; color: white; border: none; border-radius: 5px; cursor: pointer; }
+.toolbar { display: flex; justify-content: flex-end; margin-bottom: 0.75rem; }
+.btn-sm { padding: 0.3rem 0.7rem; background: #eef2f7; color: #344054; border: none; border-radius: 5px; cursor: pointer; font-size: 0.8rem; }
+.btn-sm:disabled { cursor: wait; opacity: 0.7; }
 .pin-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 1rem; }
 .pin-card { background: white; border-radius: 10px; padding: 1rem; box-shadow: 0 2px 8px rgba(0,0,0,0.07); }
 .pin-header { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 0.75rem; }

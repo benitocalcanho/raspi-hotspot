@@ -4,10 +4,22 @@ import api from '../api.js'
 
 export const useGpioStore = defineStore('gpio', () => {
   const pins = ref([])
+  const loading = ref(false)
+  const error = ref('')
 
   async function fetchPins() {
-    const { data } = await api.get('/gpio/pins')
-    pins.value = data
+    loading.value = true
+    error.value = ''
+    try {
+      const { data } = await api.get('/gpio/pins')
+      pins.value = data
+    } catch (err) {
+      error.value = err.response?.data?.error || 'Could not load GPIO pins.'
+      pins.value = []
+      throw err
+    } finally {
+      loading.value = false
+    }
   }
 
   async function togglePin(pinNumber) {
@@ -26,5 +38,5 @@ export const useGpioStore = defineStore('gpio', () => {
     pins.value = pins.value.filter(p => p.pin_number !== pinNumber)
   }
 
-  return { pins, fetchPins, togglePin, addPin, deletePin }
+  return { pins, loading, error, fetchPins, togglePin, addPin, deletePin }
 })
