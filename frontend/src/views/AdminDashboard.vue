@@ -30,15 +30,14 @@
     </div>
 
     <div class="tabs">
-      <button :class="{active: tab==='users'}" @click="tab='users'">Users</button>
-      <button :class="{active: tab==='audit'}" @click="tab='audit'">Audit Log</button>
-      <button :class="{active: tab==='calendar'}" @click="tab='calendar'">Calendar Sync</button>
-      <button :class="{active: tab==='settings'}" @click="tab='settings'">ngrok Tunnel</button>
-      <button :class="{active: tab==='email'}" @click="tab='email'">Email</button>
-      <button :class="{active: tab==='wifi'}" @click="tab='wifi'">WiFi Networks</button>
-      <button :class="{active: tab==='doors'}" @click="tab='doors'">Door Images</button>
-      <button :class="{active: tab==='doorlog'}" @click="tab='doorlog'">Door Log</button>
-      <button :class="{active: tab==='buttonhistory'}" @click="tab='buttonhistory'">Button History</button>
+      <button
+        v-for="item in adminTabs"
+        :key="item.key"
+        :class="{active: tab === item.key}"
+        @click="goToTab(item.key)"
+      >
+        {{ item.label }}
+      </button>
     </div>
 
     <!-- Door Log tab -->
@@ -159,7 +158,8 @@
   </div>
 </template>
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import ButtonHistoryTable from '../components/ButtonHistoryTable.vue'
 import DoorLog from '../components/DoorLog.vue'
 import api from '../api.js'
@@ -169,7 +169,22 @@ import SettingsPanel from '../components/SettingsPanel.vue'
 import WifiManager from '../components/WifiManager.vue'
 
 // ...existing code...
-const tab = ref('users')
+const route = useRoute()
+const router = useRouter()
+const adminTabs = [
+  { key: 'users', slug: 'users', label: 'Users' },
+  { key: 'audit', slug: 'audit', label: 'Audit Log' },
+  { key: 'calendar', slug: 'calendar', label: 'Calendar Sync' },
+  { key: 'settings', slug: 'ngrok', label: 'ngrok Tunnel' },
+  { key: 'email', slug: 'email', label: 'Email' },
+  { key: 'wifi', slug: 'wifi', label: 'WiFi Networks' },
+  { key: 'doors', slug: 'door-images', label: 'Door Images' },
+  { key: 'doorlog', slug: 'door-log', label: 'Door Log' },
+  { key: 'buttonhistory', slug: 'button-history', label: 'Button History' },
+]
+const tabBySlug = Object.fromEntries(adminTabs.map((item) => [item.slug, item.key]))
+const slugByTab = Object.fromEntries(adminTabs.map((item) => [item.key, item.slug]))
+const tab = computed(() => tabBySlug[route.params.tab] || 'users')
 const overview = ref(null)
 const users = ref([])
 const auditEntries = ref([])
@@ -233,8 +248,9 @@ const cacheBust = ref(Date.now())
 
 const newUser = ref({ username: '', password: '', role: 'user' })
 
-
-import { watch } from 'vue'
+function goToTab(key) {
+  router.push(`/admin/${slugByTab[key] || 'users'}`)
+}
 
 onMounted(async () => {
   await Promise.all([loadOverview(), loadUsers(), loadScheduleInfo(), loadDoorImages()])
@@ -255,6 +271,16 @@ onMounted(async () => {
     }
   }, { immediate: true })
 })
+
+watch(
+  () => route.params.tab,
+  (slug) => {
+    if (!tabBySlug[slug]) {
+      router.replace('/admin/users')
+    }
+  },
+  { immediate: true }
+)
 
 async function loadDoorImages() {
   try {

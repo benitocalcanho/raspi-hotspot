@@ -10,7 +10,7 @@ import WiFiSetup from '../views/WiFiSetup.vue'
 import GpioControl from '../views/GpioControl.vue'
 
 function homeForRole(role) {
-  if (role === 'admin') return '/admin'
+  if (role === 'admin') return '/admin/users'
   if (['cleaner', 'guest', 'user'].includes(role)) return '/guest'
   return '/dashboard'
 }
@@ -19,8 +19,9 @@ const routes = [
   { path: '/', redirect: '/login' },
   { path: '/login', component: Login, meta: { public: true } },
   { path: '/wifi-setup', component: WiFiSetup, meta: { public: true } },
+  { path: '/admin', redirect: '/admin/users' },
   {
-    path: '/admin',
+    path: '/admin/:tab',
     component: AdminDashboard,
     meta: { requiresAuth: true, requiresAdmin: true },
   },
