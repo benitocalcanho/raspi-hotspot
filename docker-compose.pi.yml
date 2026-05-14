@@ -11,7 +11,7 @@
 #
 #  This overlay:
 #    - Sets ENABLE_GPIO=true to activate the relay routes
-#    - Maps /dev/gpiomem into the container for hardware access
+#    - Maps GPIO devices into the container for relay output and reed input
 # ============================================================
 
 services:
@@ -25,6 +25,8 @@ services:
     devices:
       # Pass the GPIO memory device so gpiozero can drive relay pins
       - /dev/gpiomem:/dev/gpiomem
+      # Pass the GPIO character device so lgpio can read input pins
+      - /dev/gpiochip0:/dev/gpiochip0
 
     volumes:
       # Mount the host D-Bus socket so the container's nmcli talks to the
