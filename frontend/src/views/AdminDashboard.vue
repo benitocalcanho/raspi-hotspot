@@ -79,8 +79,16 @@
     <!-- Audit tab -->
     <section v-if="tab === 'audit'">
       <h3>Audit Log</h3>
+      <p v-if="auditError" class="error">{{ auditError }}</p>
       <AuditLog :entries="auditEntries" />
-      <button @click="loadAudit" class="btn-sm mt">Load more</button>
+      <button
+        v-if="auditPage < auditPages"
+        @click="loadMoreAudit"
+        class="btn-sm mt"
+        :disabled="auditLoading"
+      >
+        {{ auditLoading ? 'Loading...' : `Load more (${auditEntries.length}/${auditTotal})` }}
+      </button>
     </section>
 
 
@@ -165,6 +173,12 @@ const tab = ref('users')
 const overview = ref(null)
 const users = ref([])
 const auditEntries = ref([])
+const auditPage = ref(1)
+const auditPages = ref(1)
+const auditTotal = ref(0)
+const auditLoading = ref(false)
+const auditError = ref('')
+const auditPerPage = 50
 const showCreate = ref(false)
 const createError = ref('')
 const syncing = ref(false)
@@ -223,14 +237,18 @@ const newUser = ref({ username: '', password: '', role: 'user' })
 import { watch } from 'vue'
 
 onMounted(async () => {
-  await Promise.all([loadOverview(), loadUsers(), loadAudit(), loadScheduleInfo(), loadDoorImages()])
+  await Promise.all([loadOverview(), loadUsers(), loadScheduleInfo(), loadDoorImages()])
 
   // Auto-refresh audit log when Audit Log tab is active
   let auditInterval = null
   watch(tab, (val) => {
     if (val === 'audit') {
-      loadAudit()
-      auditInterval = setInterval(loadAudit, 5000)
+      loadAudit({ page: 1, append: false })
+      auditInterval = setInterval(() => {
+        if (auditPage.value === 1 && !auditLoading.value) {
+          loadAudit({ page: 1, append: false, silent: true })
+        }
+      }, 5000)
     } else if (auditInterval) {
       clearInterval(auditInterval)
       auditInterval = null
@@ -285,9 +303,25 @@ async function loadUsers() {
   users.value = data
 }
 
-async function loadAudit() {
-  const { data } = await api.get('/admin/audit')
-  auditEntries.value = data.items
+async function loadAudit({ page = 1, append = false, silent = false } = {}) {
+  auditLoading.value = true
+  if (!silent) auditError.value = ''
+  try {
+    const { data } = await api.get(`/admin/audit?page=${page}&per_page=${auditPerPage}`)
+    auditEntries.value = append ? [...auditEntries.value, ...data.items] : data.items
+    auditPage.value = data.page
+    auditPages.value = data.pages || 1
+    auditTotal.value = data.total || auditEntries.value.length
+  } catch (e) {
+    auditError.value = e.response?.data?.error || 'Could not load audit log.'
+  } finally {
+    auditLoading.value = false
+  }
+}
+
+async function loadMoreAudit() {
+  if (auditLoading.value || auditPage.value >= auditPages.value) return
+  await loadAudit({ page: auditPage.value + 1, append: true })
 }
 
 async function createUser() {
