@@ -12,6 +12,7 @@ door_bp = Blueprint("door", __name__)
 @jwt_required()
 @require_roles("admin")
 def status():
+    reed_sensor.poll_once(source="sensor_status")
     latest = DoorLog.query.order_by(DoorLog.timestamp.desc()).first()
     payload = reed_sensor.status()
     payload["last_event"] = latest.to_dict() if latest else None

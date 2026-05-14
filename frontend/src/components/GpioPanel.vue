@@ -20,7 +20,7 @@
         </div>
         <div class="pin-body">
           <span :class="['state', pin.state ? 'on' : 'off']">
-            {{ pin.state ? $t('on') : $t('off') }}
+            {{ pinStateLabel(pin) }}
           </span>
           <button
             v-if="pin.direction === 'output'"
@@ -74,6 +74,16 @@ async function addPin() {
   } catch (e) {
     addError.value = e.response?.data?.error || 'Failed to add pin.'
   }
+}
+
+function pinStateLabel(pin) {
+  if (pin.direction !== 'input') {
+    return pin.state ? $t('on') : $t('off')
+  }
+  if (pin.pin_number === 23 || /door sensor/i.test(pin.label || '')) {
+    return pin.state ? 'Closed' : 'Open'
+  }
+  return pin.state ? 'Active' : 'Inactive'
 }
 </script>
 

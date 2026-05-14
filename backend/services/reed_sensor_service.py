@@ -44,9 +44,11 @@ class ReedSensorService:
         try:
             self._ensure_pin_configured()
             initial_state = self.get_state()
-            self._last_logged_state = self._latest_logged_state() or initial_state
+            self._last_logged_state = self._latest_logged_state()
             self.enabled = initial_state != "unknown"
             self.error = None if self.enabled else self.error
+            if self.enabled:
+                self._log_state_if_changed(initial_state, "sensor_startup")
             self._start_polling()
             app.logger.info("Door reed sensor polling GPIO%s.", self.pin_number)
         except Exception as exc:
