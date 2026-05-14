@@ -46,6 +46,8 @@ services:
       TZ: ${TZ:-}
       TAILSCALE_SUBNET: 100.64.0.0/10
       ADMIN_REQUIRE_TAILSCALE: "false"
+      AUDIT_LOG_RETENTION_DAYS: ${AUDIT_LOG_RETENTION_DAYS:-180}
+      DOOR_LOG_RETENTION_DAYS: ${DOOR_LOG_RETENTION_DAYS:-90}
 
     ports:
       # Host port : Container port

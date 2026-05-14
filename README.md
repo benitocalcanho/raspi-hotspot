@@ -220,6 +220,17 @@ On Raspberry Pi, use the Pi compose overlay to set `ENABLE_GPIO=true`, map GPIO 
 
 See [docs/HARDWARE.md](docs/HARDWARE.md) for wiring diagrams.
 
+## Log Retention
+
+The app automatically trims old log rows to protect small Raspberry Pi SD cards:
+
+| Log | Default retention |
+|---|---:|
+| Audit log | 180 days |
+| Door sensor log | 90 days |
+
+Override with `AUDIT_LOG_RETENTION_DAYS` and `DOOR_LOG_RETENTION_DAYS` if needed.
+
 ## License
 
 MIT

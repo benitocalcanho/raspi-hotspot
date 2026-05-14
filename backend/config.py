@@ -84,6 +84,10 @@ class Config:
         "on",
     )
 
+    # ── Log retention ────────────────────────────────────────
+    AUDIT_LOG_RETENTION_DAYS: int = int(os.getenv("AUDIT_LOG_RETENTION_DAYS", "180"))
+    DOOR_LOG_RETENTION_DAYS: int = int(os.getenv("DOOR_LOG_RETENTION_DAYS", "90"))
+
     # ── Application ──────────────────────────────────────────
     APP_HOST: str = os.getenv("APP_HOST", "0.0.0.0")
     APP_PORT: int = int(os.getenv("APP_PORT", "5000"))

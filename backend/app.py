@@ -109,6 +109,9 @@ def create_app(config_class=Config):
         # Background watchdog: restart ngrok tunnel if it drops (e.g. after WiFi switch)
         _start_ngrok_watchdog(app)
 
+        from services.log_retention_service import start_retention_cleanup
+        start_retention_cleanup(app)
+
     if app.config.get("CALENDAR_SYNC_ENABLED", True):
         should_start_scheduler = (not app.debug) or os.environ.get("WERKZEUG_RUN_MAIN") == "true"
         if should_start_scheduler:

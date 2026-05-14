@@ -55,6 +55,8 @@ List all users.
 ### GET `/admin/audit?page=1&per_page=50&user_id=3`
 Paginated audit log.
 
+Audit log rows are kept for 180 days by default. Override with `AUDIT_LOG_RETENTION_DAYS`.
+
 ### GET `/admin/ngrok`
 Returns `{ "url": "https://...", "active": true }`.
 
@@ -191,6 +193,8 @@ Manually trigger iCal sync. Returns a detail object describing every change made
 `status` values: `"ok"` · `"no_url"` (iCal URL not configured) · `"fetch_error"` (HTTP/network failure, `error` field has detail) · `"error"` (unexpected failure).
 
 ## Door Sensor (`/api/door`) — admin role required
+
+Door sensor event rows are kept for 90 days by default. Override with `DOOR_LOG_RETENTION_DAYS`.
 
 ### GET `/door/status`
 Returns the current reed sensor state, setup status, GPIO pin, and timestamp of the last recorded event.
