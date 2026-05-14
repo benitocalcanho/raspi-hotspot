@@ -23,6 +23,6 @@ This table tracks the physical Raspberry Pi header pins used by Raspi Hotspot. C
 
 - The reed switch uses GPIO23 (physical pin 16) with internal pull-up enabled in software.
 - The other side of the reed switch connects to GND (physical pin 14).
-- Circuit closed to GND is currently logged as `open`; circuit open is logged as `closed`.
+- Circuit closed to GND / magnet present is logged as `closed`; circuit open / magnet away is logged as `open`.
 
 See [HARDWARE.md](HARDWARE.md) for wiring and test steps.

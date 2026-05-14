@@ -36,6 +36,8 @@ from routes.wifi import wifi_bp
 from routes.calendar_sync import calendar_bp
 from routes.uploads import uploads_bp
 from utils.timezone_utils import get_effective_timezone_info, local_now
+from routes.door import door_bp
+from services.reed_sensor_service import reed_sensor
 
 
 def create_app(config_class=Config):
@@ -61,6 +63,7 @@ def create_app(config_class=Config):
     app.register_blueprint(wifi_bp, url_prefix="/api/wifi")
     app.register_blueprint(calendar_bp, url_prefix="/api/calendar")
     app.register_blueprint(uploads_bp, url_prefix="/api/uploads")
+    app.register_blueprint(door_bp, url_prefix="/api/door")
 
 
     # Create DB tables and seed admin user on first run
@@ -79,6 +82,7 @@ def create_app(config_class=Config):
         _seed_admin(app)
         _seed_gpio(app)
         _migrate_calendar_users_to_guest(app)
+        reed_sensor.init_app(app)
         # Stop any running ngrok tunnels/processes before starting a new tunnel
         try:
             import subprocess

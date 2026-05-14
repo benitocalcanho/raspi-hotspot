@@ -79,10 +79,10 @@ Current software convention:
 
 | Electrical state | Logged door state |
 |---|---|
-| Circuit closed to GND | `open` |
-| Circuit open | `closed` |
+| Circuit closed to GND / magnet present | `closed` |
+| Circuit open / magnet away | `open` |
 
-If your reed switch is mounted in the opposite orientation, either reverse the physical mounting or change the state mapping in `backend/services/reed_sensor_service.py`.
+If your reed switch is mounted in the opposite orientation, set `REED_ACTIVE_STATE=open` in the Pi environment.
 
 ## Enable GPIO Runtime
 
@@ -115,7 +115,7 @@ docker exec -it raspi-hotspot python
 from gpiozero import Button
 
 sensor = Button(23, pull_up=True)
-print("open" if sensor.is_pressed else "closed")
+print("closed" if sensor.is_pressed else "open")
 ```
 
 ## WiFi Hardware Note

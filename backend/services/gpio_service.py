@@ -19,25 +19,35 @@ try:
         Device.pin_factory = MockFactory()
 except ImportError:
     # Fallback: full mock when gpiozero is not installed (dev/CI environment)
+    LED = Button = Device = None
     _use_mock = True
 
 
 _pin_devices: dict[int, object] = {}   # BCM pin number → gpiozero device
+_pin_directions: dict[int, str] = {}
 
 
 def _get_or_create_device(pin_number: int, direction: str):
     """Return a cached gpiozero device for a given BCM pin."""
+    if LED is None or Button is None:
+        raise RuntimeError("gpiozero is not installed; GPIO hardware is unavailable.")
+
     if pin_number in _pin_devices:
-        return _pin_devices[pin_number]
+        if _pin_directions.get(pin_number) == direction:
+            return _pin_devices[pin_number]
+        old_device = _pin_devices.pop(pin_number)
+        _pin_directions.pop(pin_number, None)
+        old_device.close()
 
     if direction == "output":
         # active_high=False: most relay boards are active-LOW (LOW = relay ON)
         # initial_value=False: start inactive (pin HIGH = relay OFF)
         device = LED(pin_number, active_high=False, initial_value=False)
     else:
-        device = Button(pin_number)
+        device = Button(pin_number, pull_up=True, bounce_time=0.2)
 
     _pin_devices[pin_number] = device
+    _pin_directions[pin_number] = direction
     return device
 
 
@@ -111,6 +121,7 @@ def delete_pin(pin_number: int) -> None:
         raise LookupError(f"Pin BCM{pin_number} is not configured.")
 
     device = _pin_devices.pop(pin_number, None)
+    _pin_directions.pop(pin_number, None)
     if device:
         device.close()
 

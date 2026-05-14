@@ -21,11 +21,10 @@ def list_pins():
     # Sync live hardware state into DB before returning so the UI is accurate
     result = []
     for p in pins:
-        if p.direction == "output":
-            try:
-                gpio_service.read_pin_state(p.pin_number)  # syncs live→DB
-            except Exception:
-                pass
+        try:
+            gpio_service.read_pin_state(p.pin_number)  # syncs live→DB
+        except Exception:
+            pass
         result.append(p.to_dict())
     return jsonify(result), 200
 

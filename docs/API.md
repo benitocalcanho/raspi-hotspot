@@ -201,16 +201,21 @@ Returns the current reed sensor state, setup status, GPIO pin, and timestamp of 
   "enabled": true,
   "pin_number": 23,
   "error": null,
-  "timestamp": "2026-05-13T12:34:56.789Z"
+  "last_event": {
+    "id": 42,
+    "timestamp": "2026-05-13T12:34:56.789Z",
+    "state": "open",
+    "source": "sensor_poll"
+  }
 }
 ```
 
-### GET `/door/log?limit=50&offset=0`
+### GET `/door/events?limit=50`
 Returns recent door open/close events, most recent first.
 
 ```json
 [
-  { "timestamp": "2026-05-13T12:34:56.789Z", "state": "open", "source": "sensor" },
-  { "timestamp": "2026-05-13T12:30:00.123Z", "state": "closed", "source": "sensor" }
+  { "id": 42, "timestamp": "2026-05-13T12:34:56.789Z", "state": "open", "source": "sensor_poll" },
+  { "id": 41, "timestamp": "2026-05-13T12:30:00.123Z", "state": "closed", "source": "sensor_poll" }
 ]
 ```
