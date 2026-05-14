@@ -84,11 +84,11 @@ restrict which devices can reach the Pi:
     {
       "action": "accept",
       "src": ["autogroup:owner"],
-      "dst": ["tag:raspi:5000"]
+      "dst": ["tag:invisible-key:5000"]
     }
   ],
   "tagOwners": {
-    "tag:raspi": ["autogroup:owner"]
+    "tag:invisible-key": ["autogroup:owner"]
   }
 }
 ```

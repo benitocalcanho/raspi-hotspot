@@ -5,7 +5,7 @@
 # =============================================================================
 set -euo pipefail
 
-INSTALL_DIR="/home/pi/raspi-hotspot"
+INSTALL_DIR="/home/pi/invisible-key"
 PYTHON_MIN="3.9"
 
 echo "==> Updating system packages..."

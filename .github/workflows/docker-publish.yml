@@ -27,7 +27,7 @@ on:
 
 env:
   # ghcr.io image name — automatically uses the repo owner/name
-  IMAGE_NAME: ghcr.io/${{ github.repository_owner }}/raspi-hotspot
+  IMAGE_NAME: ghcr.io/${{ github.repository_owner }}/invisible-key
 
 jobs:
   build-and-push:
@@ -63,9 +63,9 @@ jobs:
 
       # ── Compute image tags ─────────────────────────────────
       # Produces tags like:
-      #   ghcr.io/benitocalcanho/raspi-hotspot:latest        (main branch)
-      #   ghcr.io/benitocalcanho/raspi-hotspot:v1.2.3        (version tag)
-      #   ghcr.io/benitocalcanho/raspi-hotspot:sha-a1b2c3d   (commit SHA)
+      #   ghcr.io/benitocalcanho/invisible-key:latest        (main branch)
+      #   ghcr.io/benitocalcanho/invisible-key:v1.2.3        (version tag)
+      #   ghcr.io/benitocalcanho/invisible-key:sha-a1b2c3d   (commit SHA)
       - name: Extract metadata
         id: meta
         uses: docker/metadata-action@v5

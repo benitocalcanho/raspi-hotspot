@@ -90,7 +90,7 @@ def toggle_pin(pin_number):
     device = request.headers.get("User-Agent", "Unknown")
     button_label = getattr(pin, "label", f"Pin {pin_number}")
     action = "Unlocked" if pin.state else "Locked"
-    subject = f"[Raspi Hotspot] {action} by {user.username}"
+    subject = f"[Invisible Key] {action} by {user.username}"
     body = f"User: {user.username}\nRole: {user.role}\nButton: {button_label}\nPin: {pin_number}\nAction: {action}\nDevice: {device}"
     try:
         send_notification_email(subject, body)

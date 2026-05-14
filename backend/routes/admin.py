@@ -40,7 +40,7 @@ def log_button_press():
     from services.email_service import send_notification_email
     user = User.query.get(user_id)
     device = request.headers.get("User-Agent", "Unknown")
-    subject = f"[Raspi Hotspot] {button} pressed by {user.username}"
+    subject = f"[Invisible Key] {button} pressed by {user.username}"
     body = f"User: {user.username}\nRole: {user.role}\nButton: {button}\nDevice: {device}"
     import threading
     from flask import current_app

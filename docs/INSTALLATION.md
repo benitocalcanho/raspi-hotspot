@@ -1,6 +1,6 @@
 # Installation Guide
 
-This is the canonical install guide for Raspi Hotspot. Use Docker unless you have a specific reason to manage Python, Node, and systemd manually.
+This is the canonical install guide for Invisible Key. Use Docker unless you have a specific reason to manage Python, Node, and systemd manually.
 
 Calendar schedule times are deployment-local. The app detects the host/container timezone at runtime; set `APP_TIMEZONE` only when a host needs an explicit IANA timezone override such as `Europe/Lisbon`.
 
@@ -27,7 +27,7 @@ Before writing the card, open **OS Customisation** and set:
 
 | Setting | Recommended value |
 |---|---|
-| Hostname | `hotspot` or another memorable name |
+| Hostname | `invisible-key` or another memorable name |
 | Username/password | Create the normal Pi login, for example user `pi` with a strong password |
 | Wireless LAN | Set the WiFi SSID, password, and WiFi country |
 | Locale | Set timezone, keyboard layout, and language |
@@ -39,7 +39,7 @@ Raspberry Pi Connect is useful as the recovery/admin shell path when you are awa
 After writing the card, boot the Pi and wait a minute or two for first-boot setup to finish. Then connect using one of:
 
 ```bash
-ssh pi@hotspot.local
+ssh pi@invisible-key.local
 ssh pi@<pi-ip>
 ```
 
@@ -86,8 +86,8 @@ docker compose version
 Clone the repository:
 
 ```bash
-git clone https://github.com/benitocalcanho/raspi-hotspot.git
-cd raspi-hotspot
+git clone https://github.com/benitocalcanho/invisible-key.git
+cd invisible-key
 ```
 
 Start on Raspberry Pi:
@@ -156,19 +156,19 @@ Docker named volumes keep runtime data across container updates:
 
 | Volume | Contents |
 |---|---|
-| `raspi_data` | SQLite database at `/app/backend/instance/data/raspi.db` |
-| `raspi_uploads` | Door images uploaded through the dashboard |
+| `invisible_key_data` | SQLite database at `/app/backend/instance/data/invisible_key.db` |
+| `invisible_key_uploads` | Door images uploaded through the dashboard |
 
 Back up the database:
 
 ```bash
-docker cp raspi-hotspot:/app/backend/instance/data/raspi.db ./backup.db
+docker cp invisible-key:/app/backend/instance/data/invisible_key.db ./backup.db
 ```
 
 Restore a database backup:
 
 ```bash
-docker cp ./backup.db raspi-hotspot:/app/backend/instance/data/raspi.db
+docker cp ./backup.db invisible-key:/app/backend/instance/data/invisible_key.db
 docker compose -f docker-compose.prod.yml -f docker-compose.pi.yml restart app
 ```
 

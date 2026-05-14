@@ -18,7 +18,7 @@ services:
   app:
     # Pre-built multi-arch image from GitHub Container Registry.
     # Supports: linux/amd64 (desktop), linux/arm64 (Pi 4/5), linux/arm/v7 (Pi 2/3)
-    image: ghcr.io/benitocalcanho/raspi-hotspot:latest
+    image: ghcr.io/benitocalcanho/invisible-key:latest
 
     env_file:
       - path: .env
@@ -26,9 +26,9 @@ services:
 
     environment:
       FLASK_ENV: production
-      SECRET_KEY: ${SECRET_KEY:-raspi-hotspot-default-secret-key-change-me}
-      JWT_SECRET_KEY: ${JWT_SECRET_KEY:-raspi-hotspot-default-jwt-key-change-me}
-      DATABASE_URL: sqlite:///data/raspi.db
+      SECRET_KEY: ${SECRET_KEY:-invisible-key-default-secret-key-change-me}
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY:-invisible-key-default-jwt-key-change-me}
+      DATABASE_URL: sqlite:///data/invisible_key.db
       ADMIN_USERNAME: ${ADMIN_USERNAME:-admin}
       ADMIN_PASSWORD: ${ADMIN_PASSWORD:-admin12345}
       CALENDAR_GUEST_DEFAULT_PASSWORD: ${CALENDAR_GUEST_DEFAULT_PASSWORD:-guest12345}
@@ -54,20 +54,20 @@ services:
 
     volumes:
       # SQLite database — persists across container restarts and image updates
-      # Flask-SQLAlchemy 3.x resolves sqlite:///data/raspi.db relative to instance_path
-      - raspi_data:/app/backend/instance/data
+      # Flask-SQLAlchemy 3.x resolves sqlite:///data/invisible_key.db relative to instance_path
+      - invisible_key_data:/app/backend/instance/data
 
       # Door images uploaded via the admin dashboard
-      - raspi_uploads:/app/backend/uploads
+      - invisible_key_uploads:/app/backend/uploads
 
       # Inherit host timezone files so runtime detection matches deployment target
       - /etc/localtime:/etc/localtime:ro
       - /etc/timezone:/etc/timezone:ro
 
     restart: unless-stopped
-    container_name: raspi-hotspot
+    container_name: invisible-key
 
 # ── Named volumes ─────────────────────────────────────────────────────────────
 volumes:
-  raspi_data:
-  raspi_uploads:
+  invisible_key_data:
+  invisible_key_uploads:

@@ -7,12 +7,12 @@
 # =============================================================================
 set -euo pipefail
 
-INSTALL_DIR="/home/pi/raspi-hotspot"
+INSTALL_DIR="/home/pi/invisible-key"
 
 # Load env values
 source "${INSTALL_DIR}/config/.env"
 
-SSID="${HOTSPOT_SSID:-RaspiSetup}"
+SSID="${HOTSPOT_SSID:-InvisibleKeySetup}"
 HOST_IP="${HOTSPOT_IP:-192.168.50.1}"
 
 detect_wifi_iface() {
@@ -58,12 +58,12 @@ cat > /etc/NetworkManager/conf.d/99-unmanaged-uap0.conf <<EOF
 unmanaged-devices=interface-name:uap0
 EOF
 
-echo "==> Creating hotspot startup script /usr/local/bin/raspi-hotspot-up..."
-cat > /usr/local/bin/raspi-hotspot-up <<'SCRIPT'
+echo "==> Creating hotspot startup script /usr/local/bin/invisible-key-up..."
+cat > /usr/local/bin/invisible-key-up <<'SCRIPT'
 #!/usr/bin/env bash
 set -euo pipefail
 
-source /home/pi/raspi-hotspot/config/.env || true
+source /home/pi/invisible-key/config/.env || true
 
 detect_wifi_iface() {
     if [[ -n "${WIFI_IFACE:-}" ]] && ip link show "${WIFI_IFACE}" >/dev/null 2>&1; then
@@ -118,53 +118,53 @@ ip link set "${AP_IFACE}" up
 ip addr flush dev "${AP_IFACE}" >/dev/null 2>&1 || true
 ip addr add "${HOTSPOT_IP:-192.168.50.1}/24" dev "${AP_IFACE}"
 
-cat > /run/raspi-hostapd.conf <<EOF
+cat > /run/invisible-key-hostapd.conf <<EOF
 interface=${AP_IFACE}
 driver=nl80211
-ssid=${HOTSPOT_SSID:-RaspiSetup}
+ssid=${HOTSPOT_SSID:-InvisibleKeySetup}
 hw_mode=g
 channel=6
 wmm_enabled=0
 auth_algs=1
 wpa=2
-wpa_passphrase=${HOTSPOT_PASSPHRASE:-raspisetup123}
+wpa_passphrase=${HOTSPOT_PASSPHRASE:-invisiblekey123}
 wpa_key_mgmt=WPA-PSK
 rsn_pairwise=CCMP
 EOF
-chmod 600 /run/raspi-hostapd.conf
+chmod 600 /run/invisible-key-hostapd.conf
 
-hostapd -B /run/raspi-hostapd.conf
+hostapd -B /run/invisible-key-hostapd.conf
 dnsmasq \
     --interface="${AP_IFACE}" \
     --bind-interfaces \
     --dhcp-range="${HOTSPOT_DHCP_RANGE:-192.168.50.10,192.168.50.50}",12h \
     --address=/#/"${HOTSPOT_IP:-192.168.50.1}" \
-    --pid-file=/run/raspi-dnsmasq.pid \
-    --log-facility=/var/log/raspi-dnsmasq.log \
+    --pid-file=/run/invisible-key-dnsmasq.pid \
+    --log-facility=/var/log/invisible-key-dnsmasq.log \
     --no-daemon &
 
-echo "${AP_IFACE}" > /run/raspi-hotspot-ap-iface
-echo "${AP_IS_VIRTUAL}" > /run/raspi-hotspot-ap-virtual
+echo "${AP_IFACE}" > /run/invisible-key-ap-iface
+echo "${AP_IS_VIRTUAL}" > /run/invisible-key-ap-virtual
 
-echo "Hotspot is up on ${AP_IFACE}: SSID=${HOTSPOT_SSID:-RaspiSetup}, IP=${HOTSPOT_IP:-192.168.50.1}"
+echo "Hotspot is up on ${AP_IFACE}: SSID=${HOTSPOT_SSID:-InvisibleKeySetup}, IP=${HOTSPOT_IP:-192.168.50.1}"
 SCRIPT
-chmod +x /usr/local/bin/raspi-hotspot-up
+chmod +x /usr/local/bin/invisible-key-up
 
-echo "==> Creating hotspot shutdown script /usr/local/bin/raspi-hotspot-down..."
-cat > /usr/local/bin/raspi-hotspot-down <<'SCRIPT'
+echo "==> Creating hotspot shutdown script /usr/local/bin/invisible-key-down..."
+cat > /usr/local/bin/invisible-key-down <<'SCRIPT'
 #!/usr/bin/env bash
 set -euo pipefail
 
-AP_IFACE="$(cat /run/raspi-hotspot-ap-iface 2>/dev/null || echo "uap0")"
-AP_IS_VIRTUAL="$(cat /run/raspi-hotspot-ap-virtual 2>/dev/null || echo "0")"
+AP_IFACE="$(cat /run/invisible-key-ap-iface 2>/dev/null || echo "uap0")"
+AP_IS_VIRTUAL="$(cat /run/invisible-key-ap-virtual 2>/dev/null || echo "0")"
 
-pkill -f "hostapd -B /run/raspi-hostapd.conf" >/dev/null 2>&1 || true
+pkill -f "hostapd -B /run/invisible-key-hostapd.conf" >/dev/null 2>&1 || true
 
-if [[ -f /run/raspi-dnsmasq.pid ]]; then
-    kill "$(cat /run/raspi-dnsmasq.pid)" >/dev/null 2>&1 || true
-    rm -f /run/raspi-dnsmasq.pid
+if [[ -f /run/invisible-key-dnsmasq.pid ]]; then
+    kill "$(cat /run/invisible-key-dnsmasq.pid)" >/dev/null 2>&1 || true
+    rm -f /run/invisible-key-dnsmasq.pid
 else
-    pkill -f "dnsmasq.*raspi-dnsmasq" >/dev/null 2>&1 || true
+    pkill -f "dnsmasq.*invisible-key-dnsmasq" >/dev/null 2>&1 || true
 fi
 
 ip addr flush dev "${AP_IFACE}" >/dev/null 2>&1 || true
@@ -175,9 +175,9 @@ else
     nmcli dev set "${AP_IFACE}" managed yes >/dev/null 2>&1 || true
 fi
 
-rm -f /run/raspi-hotspot-ap-iface /run/raspi-hotspot-ap-virtual /run/raspi-hostapd.conf
+rm -f /run/invisible-key-ap-iface /run/invisible-key-ap-virtual /run/invisible-key-hostapd.conf
 SCRIPT
-chmod +x /usr/local/bin/raspi-hotspot-down
+chmod +x /usr/local/bin/invisible-key-down
 
 echo "==> Hotspot setup complete."
 echo "    Compatible mode enabled for Pi 3 and Pi 2 + USB WiFi dongle."

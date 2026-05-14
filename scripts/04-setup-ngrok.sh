@@ -4,7 +4,7 @@
 # =============================================================================
 set -euo pipefail
 
-INSTALL_DIR="/home/pi/raspi-hotspot"
+INSTALL_DIR="/home/pi/invisible-key"
 
 # Detect architecture
 ARCH=$(uname -m)

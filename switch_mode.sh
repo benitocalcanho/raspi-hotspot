@@ -1,5 +1,5 @@
 #!/bin/bash
-# Switch between development and production modes for Raspi Hotspot
+# Switch between development and production modes for Invisible Key
 
 set -e
 

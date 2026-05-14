@@ -4,7 +4,7 @@
 # =============================================================================
 set -euo pipefail
 
-INSTALL_DIR="/home/pi/raspi-hotspot"
+INSTALL_DIR="/home/pi/invisible-key"
 
 echo "==> Building Vue 3 frontend..."
 cd "${INSTALL_DIR}/frontend"
@@ -17,18 +17,18 @@ cp "${INSTALL_DIR}/systemd/"*.service /etc/systemd/system/
 systemctl daemon-reload
 
 echo "==> Enabling services..."
-systemctl enable raspi-app.service
+systemctl enable invisible-key.service
 
 echo "==> Starting services..."
-systemctl start raspi-app.service
+systemctl start invisible-key.service
 
 echo ""
 echo "==> All services are running. Status:"
-systemctl status raspi-app.service --no-pager -l || true
+systemctl status invisible-key.service --no-pager -l || true
 echo ""
 echo "==> Setup complete!"
 echo "    App URL on local network: http://<pi-ip>:5000"
-echo "    Admin access: use your Tailscale IP on port 5000"
+echo "    Remote shell: use Raspberry Pi Connect"
 echo "    User access: use the ngrok URL shown in the admin dashboard"
 echo ""
 echo "    Optional hotspot setup remains available via scripts/02-setup-hotspot.sh"

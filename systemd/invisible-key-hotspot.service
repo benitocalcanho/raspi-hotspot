@@ -1,0 +1,14 @@
+[Unit]
+Description=Invisible Key — WiFi Access Point
+After=network.target
+Before=invisible-key.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+EnvironmentFile=/home/pi/invisible-key/config/.env
+ExecStart=/usr/local/bin/invisible-key-up
+ExecStop=/usr/local/bin/invisible-key-down
+
+[Install]
+WantedBy=multi-user.target

@@ -121,7 +121,7 @@ def start_hotspot(ssid: str, passphrase: str, hotspot_ip: str) -> dict:
         f"wpa_pairwise=CCMP\n"
         f"rsn_pairwise=CCMP\n"
     )
-    hostapd_conf_path = Path("/tmp/raspi_hostapd.conf")
+    hostapd_conf_path = Path("/tmp/invisible_key_hostapd.conf")
     hostapd_conf_path.write_text(hostapd_conf)
     hostapd_conf_path.chmod(0o600)
 
@@ -135,7 +135,7 @@ def start_hotspot(ssid: str, passphrase: str, hotspot_ip: str) -> dict:
         "--bind-interfaces",
         "--dhcp-range=192.168.50.10,192.168.50.50,12h",
         f"--address=/#/{hotspot_ip}",
-        "--pid-file=/tmp/raspi_dnsmasq.pid",
+        "--pid-file=/tmp/invisible_key_dnsmasq.pid",
         "--keep-in-foreground",
     ])
 
@@ -150,8 +150,8 @@ def start_hotspot(ssid: str, passphrase: str, hotspot_ip: str) -> dict:
 
 def stop_hotspot() -> dict:
     """Tear down the hotspot gracefully."""
-    _run(["sudo", "pkill", "-f", "raspi_hostapd.conf"], check=False)
-    _run(["sudo", "pkill", "-f", "raspi_dnsmasq.pid"], check=False)
+    _run(["sudo", "pkill", "-f", "invisible_key_hostapd.conf"], check=False)
+    _run(["sudo", "pkill", "-f", "invisible_key_dnsmasq.pid"], check=False)
     _run(["sudo", "iw", "dev", "uap0", "del"], check=False)
     return {"status": "hotspot_stopped"}
 

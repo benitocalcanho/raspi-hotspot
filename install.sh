@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 # ============================================================
-#  install.sh — One-command Raspi Hotspot installer
+#  install.sh — One-command Invisible Key installer
 #
 #  Run on your Raspberry Pi (or any Linux machine):
-#    curl -fsSL https://raw.githubusercontent.com/benitocalcanho/raspi-hotspot/main/install.sh | bash
+#    curl -fsSL https://raw.githubusercontent.com/benitocalcanho/invisible-key/main/install.sh | bash
 #
 #  What this script does:
 #    1. Installs Docker if not already present
@@ -16,13 +16,13 @@ set -euo pipefail
 
 # ── Colour helpers ────────────────────────────────────────────────────────────
 RED='\033[0;31m'; GREEN='\033[0;32m'; YELLOW='\033[1;33m'; BOLD='\033[1m'; NC='\033[0m'
-info()    { echo -e "${GREEN}[raspi-hotspot]${NC} $*"; }
-warn()    { echo -e "${YELLOW}[raspi-hotspot]${NC} $*"; }
-fatal()   { echo -e "${RED}[raspi-hotspot] ERROR:${NC} $*" >&2; exit 1; }
+info()    { echo -e "${GREEN}[invisible-key]${NC} $*"; }
+warn()    { echo -e "${YELLOW}[invisible-key]${NC} $*"; }
+fatal()   { echo -e "${RED}[invisible-key] ERROR:${NC} $*" >&2; exit 1; }
 
 # ── Config ────────────────────────────────────────────────────────────────────
-REPO_RAW="https://raw.githubusercontent.com/benitocalcanho/raspi-hotspot/main"
-INSTALL_DIR="${INSTALL_DIR:-$HOME/raspi-hotspot}"
+REPO_RAW="https://raw.githubusercontent.com/benitocalcanho/invisible-key/main"
+INSTALL_DIR="${INSTALL_DIR:-$HOME/invisible-key}"
 
 # ── Docker check / install ────────────────────────────────────────────────────
 if ! command -v docker &>/dev/null; then
@@ -54,8 +54,8 @@ curl -fsSL "$REPO_RAW/docker-compose.prod.yml" -o docker-compose.prod.yml
 info "Downloading docker-compose.pi.yml …"
 curl -fsSL "$REPO_RAW/docker-compose.pi.yml"   -o docker-compose.pi.yml
 
-info "Downloading config/.env.example …"
-curl -fsSL "$REPO_RAW/config/.env.example"     -o config/.env.example
+info "Downloading .env.example …"
+curl -fsSL "$REPO_RAW/.env.example"            -o config/.env.example
 
 # ── Create config/.env if not already present ────────────────────────────────
 if [[ ! -f config/.env ]]; then
@@ -106,13 +106,13 @@ else
   COMPOSE_CMD="docker compose -f docker-compose.prod.yml"
 fi
 
-info "Pulling image and starting raspi-hotspot …"
+info "Pulling image and starting invisible-key …"
 $COMPOSE_CMD up -d
 
 # ── Done ──────────────────────────────────────────────────────────────────────
 echo ""
 echo -e "${GREEN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-echo -e "${GREEN}  raspi-hotspot is running!${NC}"
+echo -e "${GREEN}  invisible-key is running!${NC}"
 echo -e "${GREEN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
 echo ""
 echo "  Open in browser:    http://$(hostname -I | awk '{print $1}'):5000"

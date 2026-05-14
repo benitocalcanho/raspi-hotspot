@@ -1,4 +1,4 @@
-# Claude Agent Guide (Raspi Hotspot)
+# Claude Agent Guide (Invisible Key)
 
 This file defines behavior expectations for Claude-family agents working on this repository.
 

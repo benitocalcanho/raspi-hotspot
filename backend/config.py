@@ -22,7 +22,7 @@ class Config:
 
     # ── Database ─────────────────────────────────────────────
     SQLALCHEMY_DATABASE_URI: str = os.getenv(
-        "DATABASE_URL", "sqlite:///instance/data/raspi.db"
+        "DATABASE_URL", "sqlite:///instance/data/invisible_key.db"
     )
     SQLALCHEMY_TRACK_MODIFICATIONS: bool = False
 
@@ -39,8 +39,8 @@ class Config:
     # All operational secrets (admin/cleaner credentials, WiFi, SMTP, etc.) are now managed via the dashboard and loaded from the database at runtime.
 
     # ── Hotspot ──────────────────────────────────────────────
-    HOTSPOT_SSID: str = os.getenv("HOTSPOT_SSID", "RaspiSetup")
-    HOTSPOT_PASSPHRASE: str = os.getenv("HOTSPOT_PASSPHRASE", "raspisetup123")
+    HOTSPOT_SSID: str = os.getenv("HOTSPOT_SSID", "InvisibleKeySetup")
+    HOTSPOT_PASSPHRASE: str = os.getenv("HOTSPOT_PASSPHRASE", "invisiblekey123")
     HOTSPOT_IP: str = os.getenv("HOTSPOT_IP", "192.168.50.1")
     HOTSPOT_DHCP_RANGE: str = os.getenv(
         "HOTSPOT_DHCP_RANGE", "192.168.50.10,192.168.50.50"

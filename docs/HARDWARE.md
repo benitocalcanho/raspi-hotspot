@@ -1,6 +1,6 @@
 # Hardware Setup
 
-This document covers the physical wiring used by Raspi Hotspot. The app uses BCM GPIO numbering in code and in the admin UI.
+This document covers the physical wiring used by Invisible Key. The app uses BCM GPIO numbering in code and in the admin UI.
 
 Use [GPIO_PINOUT.md](GPIO_PINOUT.md) for the compact pin table.
 
@@ -118,7 +118,7 @@ Do not add `privileged: true` for this app's normal GPIO usage.
 Manual shell check inside the running container:
 
 ```bash
-docker exec -it raspi-hotspot python
+docker exec -it invisible-key python
 ```
 
 ```python

@@ -1,5 +1,5 @@
 # ============================================================
-#  Raspi Hotspot — Docker Compose
+#  Invisible Key — Docker Compose
 #
 #  Desktop (no GPIO):
 #    docker compose up --build
@@ -26,9 +26,9 @@ services:
 
     environment:
       FLASK_ENV: production
-      SECRET_KEY: ${SECRET_KEY:-raspi-hotspot-default-secret-key-change-me}
-      JWT_SECRET_KEY: ${JWT_SECRET_KEY:-raspi-hotspot-default-jwt-key-change-me}
-      DATABASE_URL: sqlite:///data/raspi.db
+      SECRET_KEY: ${SECRET_KEY:-invisible-key-default-secret-key-change-me}
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY:-invisible-key-default-jwt-key-change-me}
+      DATABASE_URL: sqlite:///data/invisible_key.db
       ADMIN_USERNAME: ${ADMIN_USERNAME:-admin}
       ADMIN_PASSWORD: ${ADMIN_PASSWORD:-admin12345}
       CALENDAR_GUEST_DEFAULT_PASSWORD: ${CALENDAR_GUEST_DEFAULT_PASSWORD:-guest12345}
@@ -55,10 +55,10 @@ services:
 
     volumes:
       # SQLite database — persists across container restarts and rebuilds
-      - raspi_data:/app/backend/instance/data
+      - invisible_key_data:/app/backend/instance/data
 
       # Door images uploaded via the admin dashboard
-      - raspi_uploads:/app/backend/uploads
+      - invisible_key_uploads:/app/backend/uploads
 
       # Inherit host timezone files so runtime detection matches deployment target
       - /etc/localtime:/etc/localtime:ro
@@ -67,13 +67,13 @@ services:
     restart: unless-stopped
 
     # Optional: expose container logs with a clear name
-    container_name: raspi-hotspot
+    container_name: invisible-key
 
 # ── Named volumes ─────────────────────────────────────────────────────────────
 # Docker manages these on the host. To inspect:
-#   docker volume inspect raspi-hotspot_raspi_data
+#   docker volume inspect invisible-key_invisible_key_data
 # To back up the database:
-#   docker cp raspi-hotspot:/app/backend/instance/data/raspi.db ./backup.db
+#   docker cp invisible-key:/app/backend/instance/data/invisible_key.db ./backup.db
 volumes:
-  raspi_data:
-  raspi_uploads:
+  invisible_key_data:
+  invisible_key_uploads:

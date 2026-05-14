@@ -1,0 +1,23 @@
+[Unit]
+Description=Invisible Key — Flask Application
+After=network.target
+
+[Service]
+Type=simple
+User=pi
+WorkingDirectory=/home/pi/invisible-key/backend
+EnvironmentFile=/home/pi/invisible-key/config/.env
+ExecStart=/home/pi/invisible-key/.venv/bin/gunicorn \
+    --workers 2 \
+    --bind 0.0.0.0:5000 \
+    --timeout 60 \
+    --access-logfile /home/pi/invisible-key/logs/access.log \
+    --error-logfile /home/pi/invisible-key/logs/error.log \
+    "app:create_app()"
+Restart=on-failure
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

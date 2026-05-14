@@ -1,7 +1,9 @@
 
-# Raspi Hotspot — Airbnb Guest Access System
+# Invisible Key — Automated Guest Access
 
-A plug-and-play **Raspberry Pi** web app for short-term rental hosts. Guests connect to your local network and get a simple phone-friendly page to unlock building and apartment doors. The admin dashboard manages users, configures all operational secrets via a GUI, and syncs guest accounts automatically from a private iCal URL — no API credentials or .env editing required after install.
+Automated guest access for shared buildings. No keypads, no visible door changes.
+
+A plug-and-play **Raspberry Pi** web app for short-term rental hosts. Guests get a simple phone-friendly page to unlock building and apartment doors while the doors keep their normal external appearance. The admin dashboard manages users, configures all operational secrets via a GUI, and syncs guest accounts automatically from a private iCal URL — no API credentials or .env editing required after install.
 
 ## Features
 
@@ -50,7 +52,7 @@ A plug-and-play **Raspberry Pi** web app for short-term rental hosts. Guests con
 ## Project Structure
 
 ```
-raspi-hotspot/
+invisible-key/
 ├── backend/
 │   ├── app.py                  # Flask application factory + SPA serving
 │   ├── config.py               # Non-sensitive defaults; all secrets in DB
@@ -121,8 +123,8 @@ Use Raspberry Pi Imager first:
 Then install the app. No build tools, Node.js, or Python needed on the Pi.
 
 ```bash
-git clone https://github.com/benitocalcanho/raspi-hotspot.git
-cd raspi-hotspot
+git clone https://github.com/benitocalcanho/invisible-key.git
+cd invisible-key
 
 # Desktop / no GPIO:
 docker compose -f docker-compose.prod.yml up -d
@@ -136,8 +138,8 @@ Log in at `http://<pi-ip>:5000` with `admin` / `admin12345`. Change the password
 **Option B — Manual Install (no Docker)**
 
 ```bash
-git clone https://github.com/benitocalcanho/raspi-hotspot.git
-cd raspi-hotspot
+git clone https://github.com/benitocalcanho/invisible-key.git
+cd invisible-key
 sudo bash scripts/01-setup-pi.sh
 ```
 
@@ -151,8 +153,8 @@ Only bootstrap variables belong in environment variables. Everything else is set
 
 | Variable | Default | Description |
 |---|---|---|
-| `SECRET_KEY` | `raspi-hotspot-default-secret-key-change-me` | Flask/JWT secret — **change in production** |
-| `JWT_SECRET_KEY` | `raspi-hotspot-default-jwt-key-change-me` | JWT signing key — **change in production** |
+| `SECRET_KEY` | `invisible-key-default-secret-key-change-me` | Flask/JWT secret — **change in production** |
+| `JWT_SECRET_KEY` | `invisible-key-default-jwt-key-change-me` | JWT signing key — **change in production** |
 | `ADMIN_USERNAME` | `admin` | Bootstrap admin username |
 | `ADMIN_PASSWORD` | `admin12345` | Bootstrap admin password |
 | `APP_TIMEZONE` | auto-detected | Optional IANA timezone override |

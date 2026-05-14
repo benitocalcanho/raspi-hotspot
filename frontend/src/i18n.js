@@ -3,7 +3,7 @@ import { createI18n } from 'vue-i18n';
 const messages = {
   en: {
     // Navigation / App
-    app_name: 'Raspi Hotspot',
+    app_name: 'Invisible Key',
     nav_admin: 'Admin',
     nav_cleaner: 'Cleaner',
     nav_guest: 'Guest',
@@ -121,7 +121,7 @@ const messages = {
     unlock_door: 'Unlock',
   },
   de: {
-    app_name: 'Raspi Hotspot',
+    app_name: 'Invisible Key',
     nav_admin: 'Admin',
     nav_cleaner: 'Reinigung',
     nav_guest: 'Gast',
@@ -223,7 +223,7 @@ const messages = {
     unlock_door: 'Öffnen',
   },
   fr: {
-    app_name: 'Raspi Hotspot',
+    app_name: 'Invisible Key',
     nav_admin: 'Admin',
     nav_cleaner: 'Nettoyeur',
     nav_guest: 'Invité',
@@ -325,7 +325,7 @@ const messages = {
     unlock_door: 'Ouvrir',
   },
   es: {
-    app_name: 'Raspi Hotspot',
+    app_name: 'Invisible Key',
     nav_admin: 'Admin',
     nav_cleaner: 'Limpiador',
     nav_guest: 'Invitado',
@@ -427,7 +427,7 @@ const messages = {
     unlock_door: 'Abrir',
   },
   it: {
-    app_name: 'Raspi Hotspot',
+    app_name: 'Invisible Key',
     nav_admin: 'Admin',
     nav_cleaner: 'Addetto pulizie',
     nav_guest: 'Ospite',

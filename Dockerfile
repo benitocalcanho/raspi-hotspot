@@ -10,7 +10,7 @@
 #   ENABLE_GPIO=true   → GPIO routes active (Raspberry Pi)
 #
 # Published to GitHub Container Registry by CI on every push to main.
-# Pull with:  docker pull ghcr.io/benitocalcanho/raspi-hotspot:latest
+# Pull with:  docker pull ghcr.io/benitocalcanho/invisible-key:latest
 
 # ════════════════════════════════════════════════════════════════════════════
 # Stage 1 — Build the Vue 3 frontend
@@ -82,7 +82,7 @@ COPY --from=frontend-build /app/frontend/dist ./frontend/dist/
 
 # ── Persistent directories ───────────────────────────────────────────────────
 # These are mounted as Docker named volumes at runtime (see docker-compose.yml)
-# Flask-SQLAlchemy 3.x resolves sqlite:///data/raspi.db relative to instance_path
+# Flask-SQLAlchemy 3.x resolves sqlite:///data/invisible_key.db relative to instance_path
 RUN mkdir -p \
     /app/backend/instance/data \
     /app/backend/uploads \

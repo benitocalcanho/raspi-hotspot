@@ -1,4 +1,4 @@
-# Agent Operating Rules (Raspi Hotspot)
+# Agent Operating Rules (Invisible Key)
 
 Purpose: Keep this project plug-and-play for non-technical hosts.
 

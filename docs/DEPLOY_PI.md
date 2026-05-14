@@ -7,7 +7,7 @@ Use this checklist every time you deploy updates to the Raspberry Pi.
 Run on your local machine only if your local app is running and may hold the same ngrok endpoint.
 
 ```bash
-cd ~/Documents/Visual\ Studio\ Projects/Raspi\ Hotspot
+cd ~/Documents/Visual\ Studio\ Projects/Invisible\ Key
 pkill -f "app.py" || true
 pkill -f "ngrok" || true
 ss -ltnp | grep 5000 || true
@@ -18,7 +18,7 @@ ss -ltnp | grep 5000 || true
 Use SSH when you are on the same network or have another private route:
 
 ```bash
-ssh pi@hotspot.local
+ssh pi@invisible-key.local
 ssh pi@<pi-ip>
 ```
 
@@ -27,7 +27,7 @@ When you are away from the network, use **Raspberry Pi Connect** remote shell in
 ## 3) Update app code on the Pi
 
 ```bash
-cd ~/docker/raspi-hotspot
+cd ~/docker/invisible-key
 git fetch origin
 git checkout main
 git pull --ff-only origin main
@@ -72,7 +72,7 @@ curl -I http://127.0.0.1:5000
 ## 8) Optional runtime introspection (scheduler and effective timezone)
 
 ```bash
-docker exec -i raspi-hotspot python - <<'PY'
+docker exec -i invisible-key python - <<'PY'
 from app import create_app
 from services import calendar_service
 app = create_app()

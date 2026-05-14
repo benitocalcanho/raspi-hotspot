@@ -1,6 +1,6 @@
 # GPIO Pinout
 
-This table tracks the physical Raspberry Pi header pins used by Raspi Hotspot. Code and dashboard configuration use BCM GPIO numbers.
+This table tracks the physical Raspberry Pi header pins used by Invisible Key. Code and dashboard configuration use BCM GPIO numbers.
 
 The app creates GPIO17, GPIO27, and GPIO23 automatically on startup. The dashboard labels are `Building Door`, `Apartment Door`, and `Door Sensor`.
 
