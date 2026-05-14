@@ -55,6 +55,11 @@ def _detect_os(user_agent: str) -> str:
     return "Unknown"
 
 
+def _detect_language(accept_language: str) -> str:
+    first = accept_language.split(",")[0].strip()
+    return first[:32] if first else "Unknown"
+
+
 def _request_metadata() -> Dict[str, Any]:
     if not has_request_context():
         return {"ip": None, "user_agent": "", "client": {}}
@@ -63,11 +68,13 @@ def _request_metadata() -> Dict[str, Any]:
     forwarded_ip = forwarded_for.split(",")[0].strip() if forwarded_for else ""
     ip = forwarded_ip or request.headers.get("X-Real-IP", "") or request.remote_addr
     user_agent = request.headers.get("User-Agent", "")[:300]
+    accept_language = request.headers.get("Accept-Language", "")
 
     client = {
         "browser": _detect_browser(user_agent),
         "device": _detect_device(user_agent),
         "os": _detect_os(user_agent),
+        "language": _detect_language(accept_language),
         "path": request.path,
         "method": request.method,
     }

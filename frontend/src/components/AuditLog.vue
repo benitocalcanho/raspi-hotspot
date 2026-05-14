@@ -10,8 +10,8 @@
           <th>User</th>
           <th>Event</th>
           <th>IP</th>
-          <th>Agent</th>
           <th>Device</th>
+          <th>Language</th>
           <th>Detail</th>
         </tr>
       </thead>
@@ -23,8 +23,8 @@
             <span class="badge event-badge" :class="eventClass(entry.event)">{{ formatEvent(entry.event) }}</span>
           </td>
           <td>{{ entry.ip_address }}</td>
-          <td>{{ entry.user_agent?.split(' ')[0] }}</td>
-          <td>{{ getClientField(entry, 'platform') }}</td>
+          <td>{{ formatClient(entry) }}</td>
+          <td>{{ getClientField(entry, 'language') }}</td>
           <td>{{ formatDetail(entry.detail) }}</td>
         </tr>
       </tbody>
@@ -64,6 +64,12 @@ function eventClass(event) {
 }
 function getClientField(entry, field) {
   return entry?.detail?.client?.[field] || '—'
+}
+function formatClient(entry) {
+  const client = entry?.detail?.client || {}
+  const parts = [client.device, client.browser, client.os].filter(Boolean).filter(v => v !== 'Unknown')
+  if (parts.length) return parts.join(' · ')
+  return entry.user_agent?.split(' ')[0] || '—'
 }
 function formatDetail(detail) {
   if (!detail) return ''
