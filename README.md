@@ -14,7 +14,7 @@ A plug-and-play **Raspberry Pi** web app for short-term rental hosts. Guests con
 - **Audit log** — Every login, creation, and deletion recorded with IP and device info
 - **GPIO relay control** — Unlock door buttons trigger configurable GPIO pins for 5 seconds
 - **Door sensor log** — Optional reed switch on GPIO23 records open/closed state changes
-- **Remote access** — Admin dashboard via ngrok public URL (primary); Tailscale as backup for admin access if ngrok is unavailable
+- **Remote access** — Admin dashboard via ngrok public URL; Raspberry Pi Connect for remote admin shell/recovery access
 
 ## How It Works
 
@@ -33,8 +33,8 @@ A plug-and-play **Raspberry Pi** web app for short-term rental hosts. Guests con
                      │  ├── /api/auth                       │
   Guest ────ngrok────▶  ├── /api/admin   (admin only)      │
                      │  ├── /api/user    (all roles)        │
-  Admin ─Tailscale──▶  ├── /api/uploads (door images)      │
-  (backup SSH)       │  ├── /api/wifi    (WiFi management)  │
+  Admin ─Pi Connect─▶  ├── /api/uploads (door images)      │
+  (remote shell)    │  ├── /api/wifi    (WiFi management)  │
                      │  ├── /api/gpio    (relay control)    │
                      │  ├── /api/calendar (iCal sync)       │
                      │  └── /api/door    (reed sensor log)  │
@@ -112,7 +112,13 @@ raspi-hotspot/
 
 **Option A — Docker (recommended)**
 
-No build tools, Node.js, or Python needed on the Pi.
+Use Raspberry Pi Imager first:
+- choose Raspberry Pi OS Lite, preferably 64-bit
+- set hostname, WiFi SSID/password, WiFi country, timezone, and keyboard
+- enable SSH
+- enable/link Raspberry Pi Connect if Imager offers it
+
+Then install the app. No build tools, Node.js, or Python needed on the Pi.
 
 ```bash
 git clone https://github.com/benitocalcanho/raspi-hotspot.git
@@ -182,10 +188,11 @@ Upload photos from **Admin Dashboard → Door Images** tab. Images are stored in
 | User  | Method         | URL                                 |
 |-------|----------------|-------------------------------------|
 | Admin | ngrok (primary)| `https://<your-domain>.ngrok.io`    |
-| Admin | Tailscale (backup) | `http://<tailscale-ip>:5000`     |
+| Admin | Raspberry Pi Connect | Remote shell in browser for host maintenance |
+| Admin | Tailscale (optional) | Private VPN for direct SSH/private IP access |
 | Guests| ngrok          | `https://<your-domain>.ngrok.io`    |
 
-**Admin dashboard is always accessible via ngrok.** Tailscale is recommended as a backup for admin access to the host machine in case ngrok disconnects or is unavailable. No physical access to the Raspberry Pi is required after deployment.
+**Admin dashboard is accessible via ngrok.** Raspberry Pi Connect is the recommended simple fallback for admin shell/recovery access to the host machine when you are away from the local network. Tailscale is optional if you want a private VPN.
 
 Set ngrok settings in the dashboard. Run `scripts/04-setup-ngrok.sh` for systemd autostart.
 

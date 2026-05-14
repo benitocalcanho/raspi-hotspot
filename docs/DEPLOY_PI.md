@@ -13,11 +13,16 @@ pkill -f "ngrok" || true
 ss -ltnp | grep 5000 || true
 ```
 
-## 2) SSH to the Pi
+## 2) Open a shell on the Pi
+
+Use SSH when you are on the same network or have another private route:
 
 ```bash
-ssh pi@192.168.1.169
+ssh pi@hotspot.local
+ssh pi@<pi-ip>
 ```
+
+When you are away from the network, use **Raspberry Pi Connect** remote shell instead. This is the recommended recovery/admin path if you prepared the Pi with Raspberry Pi Imager.
 
 ## 3) Update app code on the Pi
 

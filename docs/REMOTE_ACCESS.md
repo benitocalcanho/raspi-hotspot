@@ -1,4 +1,4 @@
-# Remote Access — ngrok + Tailscale
+# Remote Access — ngrok + Raspberry Pi Connect
 
 ## Shared Behavior Note
 
@@ -10,13 +10,41 @@ Avoid maintainer-specific timezone assumptions in remote operations and support 
 | Channel | Who | How |
 |---------|-----|-----|
 | **ngrok** | Admin + all users | Primary HTTPS public tunnel; URL shown in dashboard |
-| **Tailscale** | Admin (optional backup) | Private VPN for SSH/admin access when ngrok is unavailable |
+| **Raspberry Pi Connect** | Admin | Browser-based remote shell for host maintenance/recovery |
+| **Tailscale** | Admin (optional) | Private VPN for direct SSH/private IP access |
 
-ngrok is the primary path for all remote access. Tailscale is recommended as a backup for SSH and admin dashboard access to the host machine only.
+ngrok is the primary path for app access. Raspberry Pi Connect is the recommended simple fallback for remote shell access to the host machine. Tailscale remains optional if you want a private VPN.
 
 ---
 
-## Tailscale (Admin Access)
+## Raspberry Pi Connect (Admin Shell)
+
+Raspberry Pi Connect provides remote shell access through a browser and works without router port forwarding. It is a good replacement for Tailscale when you only need occasional admin/recovery shell access to the Pi.
+
+Set it up during Raspberry Pi Imager if the option is available:
+
+1. Choose Raspberry Pi OS Lite.
+2. Open OS Customisation.
+3. Configure hostname, user/password, WiFi, locale, and SSH.
+4. Enable/link Raspberry Pi Connect.
+
+On headless Raspberry Pi OS Lite, enable user lingering so Connect can remain reachable after reboot before an interactive login:
+
+```bash
+loginctl enable-linger
+```
+
+Use Raspberry Pi Connect for:
+- checking Docker logs
+- pulling app updates
+- restarting the container
+- fixing WiFi/ngrok/app settings when you are not on the local network
+
+Raspberry Pi Connect does not expose the web app to guests. Keep ngrok for guest/admin web access.
+
+---
+
+## Tailscale (Optional Admin Access)
 
 ### What is Tailscale?
 Tailscale is a zero-config VPN built on WireGuard. It assigns your Pi a stable private
@@ -43,7 +71,7 @@ http://100.x.x.x:5000
 ```
 
 Tailscale is not required to access the admin dashboard — it is accessible via ngrok.
-Use Tailscale as a fallback for direct host access (SSH, recovery) when ngrok is unavailable.
+Use Tailscale only when you want private-network style access instead of Raspberry Pi Connect's browser shell.
 
 ### Tailscale Access Controls (Optional ACL)
 
@@ -117,7 +145,7 @@ This is sufficient for a Raspberry Pi project with a small number of users.
 
 ## CGNAT Compatibility
 
-Both Tailscale and ngrok work without any router configuration:
-- Neither requires port forwarding
-- Neither requires a public IP
-- Both work from mobile networks and behind CGNAT ISPs
+ngrok, Raspberry Pi Connect, and Tailscale work without router configuration:
+- no port forwarding required
+- no public IP required
+- suitable for mobile networks and CGNAT ISPs
