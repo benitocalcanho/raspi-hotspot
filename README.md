@@ -214,7 +214,9 @@ cd frontend && npm run build
 | GPIO27 | Apartment door relay (5 s pulse) |
 | GPIO23 | Reed switch door sensor |
 
-On Raspberry Pi, use the Pi compose overlay to set `ENABLE_GPIO=true`, map `/dev/gpiomem`, and use real `gpiozero` hardware access.
+These GPIO rows are created automatically on startup. End users only need to wire the Raspberry Pi according to the pinout.
+
+On Raspberry Pi, use the Pi compose overlay to set `ENABLE_GPIO=true`, map GPIO devices, and use real `gpiozero` hardware access.
 
 See [docs/HARDWARE.md](docs/HARDWARE.md) for wiring diagrams.
 

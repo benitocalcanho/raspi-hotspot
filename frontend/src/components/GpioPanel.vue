@@ -39,7 +39,7 @@
           </button>
           <span v-else class="direction-badge">{{ $t('input_badge') }}</span>
         </div>
-        <div v-if="showAdd" class="pin-footer">
+        <div v-if="showAdd && !isDefaultPin(pin)" class="pin-footer">
           <button @click="gpioStore.deletePin(pin.pin_number)" class="btn-danger-sm">{{ $t('remove') }}</button>
         </div>
       </div>
@@ -100,6 +100,10 @@ function pinStateLabel(pin, t) {
     return pin.state ? 'Closed' : 'Open'
   }
   return pin.state ? 'Active' : 'Inactive'
+}
+
+function isDefaultPin(pin) {
+  return [17, 23, 27].includes(pin.pin_number)
 }
 </script>
 

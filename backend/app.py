@@ -208,7 +208,7 @@ def _seed_gpio(app):
     from models.gpio_pin import GpioPin
 
     defaults = [
-        (17, "Street Door", "output"),
+        (17, "Building Door", "output"),
         (27, "Apartment Door", "output"),
         (23, "Door Sensor", "input"),
     ]

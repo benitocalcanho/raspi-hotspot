@@ -45,6 +45,16 @@ Use [GPIO_PINOUT.md](GPIO_PINOUT.md) for the compact pin table.
 
 ## Relay Outputs
 
+The app creates the default GPIO configuration automatically on startup:
+
+| Label | BCM GPIO | Direction |
+|---|---:|---|
+| Building Door | 17 | Output |
+| Apartment Door | 27 | Output |
+| Door Sensor | 23 | Input |
+
+End users only need to wire the Raspberry Pi according to this pinout.
+
 The default relay outputs are:
 
 | Door | Physical pin | BCM GPIO | Notes |
