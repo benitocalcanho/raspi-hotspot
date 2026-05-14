@@ -23,6 +23,16 @@ def status():
 @jwt_required()
 @require_roles("admin")
 def events():
-    limit = min(int(request.args.get("limit", 50)), 200)
-    rows = DoorLog.query.order_by(DoorLog.timestamp.desc()).limit(limit).all()
-    return jsonify([row.to_dict() for row in rows]), 200
+    page = max(request.args.get("page", 1, type=int) or 1, 1)
+    limit = min(max(request.args.get("limit", 50, type=int) or 50, 1), 200)
+    pagination = (
+        DoorLog.query
+        .order_by(DoorLog.timestamp.desc())
+        .paginate(page=page, per_page=limit, error_out=False)
+    )
+    return jsonify({
+        "items": [row.to_dict() for row in pagination.items],
+        "total": pagination.total,
+        "page": pagination.page,
+        "pages": pagination.pages,
+    }), 200

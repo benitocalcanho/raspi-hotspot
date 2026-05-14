@@ -37,6 +37,9 @@
         </tr>
       </tbody>
     </table>
+    <button v-if="page < pages" class="btn-sm load-more" @click="loadMore" :disabled="loading">
+      {{ loading ? 'Loading...' : `Load more (${events.length}/${total})` }}
+    </button>
   </div>
 </template>
 
@@ -48,6 +51,10 @@ const loading = ref(false)
 const error = ref('')
 const status = ref({ state: 'unknown', enabled: false, pin_number: 23, error: null })
 const events = ref([])
+const page = ref(1)
+const pages = ref(1)
+const total = ref(0)
+const perPage = 50
 
 const statusText = computed(() => {
   if (status.value.state === 'open') return 'Open'
@@ -65,21 +72,29 @@ function formatTimestamp(value) {
   return new Date(value).toLocaleString()
 }
 
-async function load() {
+async function load({ nextPage = 1, append = false } = {}) {
   loading.value = true
   error.value = ''
   try {
     const [statusRes, eventsRes] = await Promise.all([
       api.get('/door/status'),
-      api.get('/door/events?limit=50'),
+      api.get(`/door/events?page=${nextPage}&limit=${perPage}`),
     ])
     status.value = statusRes.data
-    events.value = eventsRes.data
+    events.value = append ? [...events.value, ...eventsRes.data.items] : eventsRes.data.items
+    page.value = eventsRes.data.page
+    pages.value = eventsRes.data.pages || 1
+    total.value = eventsRes.data.total || events.value.length
   } catch (err) {
     error.value = err.response?.data?.error || 'Could not load door log.'
   } finally {
     loading.value = false
   }
+}
+
+async function loadMore() {
+  if (loading.value || page.value >= pages.value) return
+  await load({ nextPage: page.value + 1, append: true })
 }
 
 onMounted(load)
@@ -123,6 +138,10 @@ onMounted(load)
 .log-table {
   width: 100%;
   border-collapse: collapse;
+}
+
+.load-more {
+  justify-self: start;
 }
 
 .log-table th,
