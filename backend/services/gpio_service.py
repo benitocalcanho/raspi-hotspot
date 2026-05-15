@@ -5,6 +5,7 @@ On non-Pi systems, gpiozero's MockFactory is used automatically.
 from __future__ import annotations
 
 import os
+import threading
 from typing import Optional
 from models import db
 from models.gpio_pin import GpioPin
@@ -22,9 +23,15 @@ except ImportError:
     LED = Button = Device = None
     _use_mock = True
 
+try:
+    import lgpio
+except ImportError:
+    lgpio = None
+
 
 _pin_devices: dict[int, object] = {}   # BCM pin number → gpiozero device
 _pin_directions: dict[int, str] = {}
+_input_read_lock = threading.Lock()
 
 
 def _get_or_create_device(pin_number: int, direction: str):
@@ -44,6 +51,12 @@ def _get_or_create_device(pin_number: int, direction: str):
         # initial_value=False: start inactive (pin HIGH = relay OFF)
         device = LED(pin_number, active_high=False, initial_value=False)
     else:
+        # Prefer direct lgpio reads for inputs on Pi. Long-lived gpiozero Button
+        # instances can report stale input state on some Pi 2 / Bookworm-Trixie
+        # combinations when used from inside Docker.
+        if lgpio is not None and not _use_mock:
+            _pin_directions[pin_number] = direction
+            return None
         device = Button(pin_number, pull_up=True, bounce_time=0.2)
 
     _pin_devices[pin_number] = device
@@ -90,18 +103,36 @@ def set_pin_state(pin_number: int, state: bool) -> GpioPin:
     return pin
 
 
+def _read_input_pin_state(pin_number: int) -> bool:
+    """Read an input pin as active-low with an internal pull-up."""
+    if lgpio is not None and not _use_mock:
+        with _input_read_lock:
+            handle = lgpio.gpiochip_open(0)
+            try:
+                lgpio.gpio_claim_input(handle, pin_number, lgpio.SET_PULL_UP)
+                # Reed switch wiring uses pull-up: closed switch pulls GPIO LOW.
+                return not bool(lgpio.gpio_read(handle, pin_number))
+            finally:
+                try:
+                    lgpio.gpio_free(handle, pin_number)
+                finally:
+                    lgpio.gpiochip_close(handle)
+
+    device = _get_or_create_device(pin_number, "input")
+    return bool(device.is_pressed)
+
+
 def read_pin_state(pin_number: int) -> bool:
     """Read the current state of any configured pin."""
     pin = GpioPin.query.filter_by(pin_number=pin_number).first()
     if not pin:
         raise LookupError(f"Pin BCM{pin_number} is not configured.")
 
-    device = _get_or_create_device(pin_number, pin.direction)
-
     if pin.direction == "output":
+        device = _get_or_create_device(pin_number, "output")
         live_state = bool(device.value)
     else:
-        live_state = bool(device.is_pressed)
+        live_state = _read_input_pin_state(pin_number)
 
     if pin.state != live_state:
         pin.state = live_state
