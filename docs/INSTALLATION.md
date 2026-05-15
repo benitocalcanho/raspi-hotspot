@@ -84,13 +84,15 @@ Do not add `privileged: true` for normal GPIO use. `/dev/gpiomem` is enough for 
 - Network access to pull the image from GitHub Container Registry
 - For GPIO hardware: Raspberry Pi with `/dev/gpiomem`
 
-Install Docker on Raspberry Pi:
+Install Docker on Raspberry Pi 3/4/5 with Raspberry Pi OS 64-bit:
 
 ```bash
 curl -fsSL https://get.docker.com | sh
 sudo usermod -aG docker "$USER"
 sudo reboot
 ```
+
+On Raspberry Pi 2 B with Raspberry Pi OS Lite 32-bit Trixie, use [INSTALL_PI2B.md](INSTALL_PI2B.md) instead. Docker's upstream Raspbian repository may not provide a `trixie` release for that board, so the Pi 2 B guide installs `docker.io` and `docker-compose` from Raspberry Pi OS packages.
 
 After reboot, verify:
 

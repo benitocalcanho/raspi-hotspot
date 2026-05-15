@@ -7,8 +7,8 @@
 #
 #  What this script does:
 #    1. Installs Docker if not already present
-#    2. Downloads docker-compose.prod.yml and config/.env.example
-#    3. Prompts you to fill in the required secrets
+#    2. Downloads docker-compose.prod.yml and .env.example
+#    3. Prompts you to fill in optional bootstrap secrets
 #    4. Starts the container (pulls the pre-built image — no build needed)
 # ============================================================
 
@@ -24,10 +24,31 @@ fatal()   { echo -e "${RED}[invisible-key] ERROR:${NC} $*" >&2; exit 1; }
 REPO_RAW="https://raw.githubusercontent.com/benitocalcanho/invisible-key/main"
 INSTALL_DIR="${INSTALL_DIR:-$HOME/invisible-key}"
 
+# ── Host detection ───────────────────────────────────────────────────────────
+IS_PI=false
+if grep -qi "raspberry pi\|bcm27\|bcm28" /proc/cpuinfo 2>/dev/null \
+   || [[ -f /sys/firmware/devicetree/base/model ]] && grep -qi "raspberry pi" /sys/firmware/devicetree/base/model 2>/dev/null; then
+  IS_PI=true
+fi
+
+IS_32BIT_TRIXIE=false
+if [[ "$(dpkg --print-architecture 2>/dev/null || true)" == "armhf" ]] \
+   && grep -q "VERSION_CODENAME=trixie" /etc/os-release 2>/dev/null; then
+  IS_32BIT_TRIXIE=true
+fi
+
 # ── Docker check / install ────────────────────────────────────────────────────
 if ! command -v docker &>/dev/null; then
-  info "Docker not found — installing via get.docker.com …"
-  curl -fsSL https://get.docker.com | sh
+  if [[ "$IS_PI" == "true" && "$IS_32BIT_TRIXIE" == "true" ]]; then
+    info "Docker not found — installing Raspberry Pi OS packages for 32-bit Trixie …"
+    sudo rm -f /etc/apt/sources.list.d/docker.list
+    sudo apt update
+    sudo apt install -y docker.io docker-compose
+    sudo systemctl enable --now docker
+  else
+    info "Docker not found — installing via get.docker.com …"
+    curl -fsSL https://get.docker.com | sh
+  fi
   # Add current user to docker group so we don't need sudo for docker commands
   sudo usermod -aG docker "$USER"
   warn "Added $USER to the 'docker' group."
@@ -39,11 +60,11 @@ fi
 
 # ── Docker Compose check ──────────────────────────────────────────────────────
 if ! docker compose version &>/dev/null 2>&1; then
-  fatal "Docker Compose plugin not found. Please update Docker or install manually:\n  https://docs.docker.com/compose/install/"
+  fatal "Docker Compose plugin not found. On Raspberry Pi OS 32-bit Trixie, install it with:\n  sudo apt install -y docker-compose"
 fi
 
 # ── Create install directory ──────────────────────────────────────────────────
-mkdir -p "$INSTALL_DIR/config"
+mkdir -p "$INSTALL_DIR"
 cd "$INSTALL_DIR"
 info "Installing to $INSTALL_DIR"
 
@@ -55,45 +76,33 @@ info "Downloading docker-compose.pi.yml …"
 curl -fsSL "$REPO_RAW/docker-compose.pi.yml"   -o docker-compose.pi.yml
 
 info "Downloading .env.example …"
-curl -fsSL "$REPO_RAW/.env.example"            -o config/.env.example
+curl -fsSL "$REPO_RAW/.env.example"            -o .env.example
 
-# ── Create config/.env if not already present ────────────────────────────────
-if [[ ! -f config/.env ]]; then
-  cp config/.env.example config/.env
-  warn "config/.env created from example. Please fill in the required values now."
+# ── Create .env if not already present ───────────────────────────────────────
+if [[ ! -f .env ]]; then
+  cp .env.example .env
+  warn ".env created from example. You can adjust bootstrap defaults now."
 else
-  info "config/.env already exists — skipping copy."
+  info ".env already exists — skipping copy."
 fi
 
 # ── Prompt user to configure secrets ────────────────────────────────────────
 echo ""
 echo -e "${BOLD}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-echo -e "${BOLD}  Required: edit config/.env before starting${NC}"
+echo -e "${BOLD}  Optional: review .env before starting${NC}"
 echo -e "${BOLD}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
 echo ""
-echo "  At minimum, set these three values:"
+echo "  The app works with defaults, then lets you configure ngrok, iCal, SMTP,"
+echo "  users, and passwords from the admin dashboard."
 echo ""
-echo "    SECRET_KEY       — random hex string (see below)"
-echo "    JWT_SECRET_KEY   — random hex string (see below)"
-echo "    ADMIN_PASSWORD   — your admin password"
-echo ""
-echo "  Generate secret keys:"
+echo "  For production, you may change ADMIN_PASSWORD and generate secret keys:"
 echo "    python3 -c \"import secrets; print(secrets.token_hex(32))\""
 echo ""
-echo "  All other secrets (ngrok, iCal, SMTP) can be set later in the dashboard."
-echo ""
 
-read -r -p "Open config/.env in nano now? [Y/n] " answer
-answer="${answer:-Y}"
+read -r -p "Open .env in nano now? [y/N] " answer
+answer="${answer:-N}"
 if [[ "${answer^^}" == "Y" ]]; then
-  ${EDITOR:-nano} config/.env
-fi
-
-# ── Detect Raspberry Pi ───────────────────────────────────────────────────────
-IS_PI=false
-if grep -qi "raspberry pi\|bcm27\|bcm28" /proc/cpuinfo 2>/dev/null \
-   || [[ -f /sys/firmware/devicetree/base/model ]] && grep -qi "raspberry pi" /sys/firmware/devicetree/base/model 2>/dev/null; then
-  IS_PI=true
+  ${EDITOR:-nano} .env
 fi
 
 # ── Start the container ───────────────────────────────────────────────────────
@@ -119,6 +128,6 @@ echo "  Open in browser:    http://$(hostname -I | awk '{print $1}'):5000"
 echo "  Follow logs:        docker compose -f docker-compose.prod.yml logs -f"
 echo "  Stop:               docker compose -f docker-compose.prod.yml down"
 echo ""
-echo "  Log in with the ADMIN_USERNAME / ADMIN_PASSWORD from config/.env"
+echo "  Log in with the ADMIN_USERNAME / ADMIN_PASSWORD from .env or defaults"
 echo "  Set all remaining secrets (ngrok, iCal, SMTP) in the dashboard."
 echo ""

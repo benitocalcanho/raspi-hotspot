@@ -48,9 +48,21 @@ docker compose version
 
 ## Install Invisible Key
 
+Clone the repository, or update the existing clone if you already tried once:
+
 ```bash
-git clone https://github.com/benitocalcanho/invisible-key.git
-cd invisible-key
+if [ -d invisible-key ]; then
+  cd invisible-key
+  git pull --ff-only origin main
+else
+  git clone https://github.com/benitocalcanho/invisible-key.git
+  cd invisible-key
+fi
+```
+
+Start the app:
+
+```bash
 docker compose -f docker-compose.prod.yml -f docker-compose.pi.yml up -d
 ```
 
@@ -69,12 +81,51 @@ Raspberry Pi 2 B is supported as a lightweight deployment target, but it is slow
 
 Raspberry Pi 2 B has no onboard WiFi. If you need WiFi or first-boot hotspot behavior, use a USB WiFi adapter supported by Raspberry Pi OS. Ethernet is simpler and more reliable.
 
+## Troubleshooting Notes
+
+### Docker install fails with `trixie Release` missing
+
+If you accidentally ran Docker's convenience script and saw this error:
+
+```text
+E: The repository 'https://download.docker.com/linux/raspbian trixie Release' does not have a Release file.
+```
+
+remove the broken Docker source and use Raspberry Pi OS packages:
+
+```bash
+sudo rm -f /etc/apt/sources.list.d/docker.list
+sudo apt update
+sudo apt install -y docker.io docker-compose
+sudo systemctl enable --now docker
+sudo usermod -aG docker "$USER"
+sudo reboot
+```
+
+### Locale warnings during `apt`
+
+Warnings such as `Setting locale failed` are not fatal. They usually mean the language/locale selected in Raspberry Pi Imager was not generated fully yet. The app and Docker install can continue.
+
+### SSH host key changed
+
+If you reused an IP address from an older Pi install, SSH may warn that the remote host identification changed. For a freshly imaged Pi on your own network, remove the old key:
+
+```bash
+ssh-keygen -f "$HOME/.ssh/known_hosts" -R "<pi-ip>"
+```
+
+Then connect again and accept the new fingerprint.
+
 ## Quick Checks
 
 ```bash
+docker --version
+docker compose version
 docker compose -f docker-compose.prod.yml -f docker-compose.pi.yml ps
 docker compose -f docker-compose.prod.yml -f docker-compose.pi.yml logs --tail=200 app
 ```
+
+First image pull and first startup can take several minutes on a Pi 2 B. Let Docker finish pulling layers before judging startup time.
 
 Open:
 
