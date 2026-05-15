@@ -10,6 +10,7 @@ Fields:
 """
 from datetime import datetime, timezone
 from models import db
+from utils.datetime_utils import utc_isoformat
 
 
 class GpioPin(db.Model):
@@ -34,7 +35,7 @@ class GpioPin(db.Model):
             "label": self.label,
             "direction": self.direction,
             "state": self.state,
-            "updated_at": self.updated_at.isoformat(),
+            "updated_at": utc_isoformat(self.updated_at),
         }
 
     def __repr__(self):

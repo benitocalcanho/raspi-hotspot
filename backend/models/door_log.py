@@ -3,6 +3,7 @@ DoorLog model — records reed switch open/closed changes.
 """
 from datetime import datetime, timezone
 from models import db
+from utils.datetime_utils import utc_isoformat
 
 
 class DoorLog(db.Model):
@@ -21,7 +22,7 @@ class DoorLog(db.Model):
     def to_dict(self) -> dict:
         return {
             "id": self.id,
-            "timestamp": self.timestamp.isoformat(),
+            "timestamp": utc_isoformat(self.timestamp),
             "state": self.state,
             "source": self.source,
         }

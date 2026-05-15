@@ -12,6 +12,7 @@ Fields:
 import json
 from datetime import datetime, timezone
 from models import db
+from utils.datetime_utils import utc_isoformat
 
 
 class AuditLog(db.Model):
@@ -46,7 +47,7 @@ class AuditLog(db.Model):
             "ip_address": self.ip_address,
             "user_agent": self.user_agent,
             "detail": parsed_detail,
-            "timestamp": self.timestamp.isoformat(),
+            "timestamp": utc_isoformat(self.timestamp),
         }
 
     def __repr__(self):

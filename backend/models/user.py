@@ -16,6 +16,7 @@ from datetime import datetime, timezone
 import re
 import bcrypt
 from models import db
+from utils.datetime_utils import utc_isoformat
 
 
 class User(db.Model):
@@ -61,7 +62,7 @@ class User(db.Model):
             "username": self.username,
             "role": self.role,
             "is_active": self.is_active,
-            "created_at": self.created_at.isoformat(),
+            "created_at": utc_isoformat(self.created_at),
             "created_by": self.created_by,
             "valid_until": self.valid_until.isoformat() if self.valid_until else None,
         }
