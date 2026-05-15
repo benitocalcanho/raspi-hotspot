@@ -79,7 +79,44 @@ Raspberry Pi 2 B is supported as a lightweight deployment target, but it is slow
 
 ## WiFi Note
 
-Raspberry Pi 2 B has no onboard WiFi. If you need WiFi or first-boot hotspot behavior, use a USB WiFi adapter supported by Raspberry Pi OS. Ethernet is simpler and more reliable.
+Raspberry Pi 2 B has no onboard WiFi. If you need WiFi or first-boot hotspot behavior, use a USB WiFi adapter supported by Raspberry Pi OS. Ethernet is simpler and more reliable when available.
+
+If you use a WiFi range extender/repeater, local inbound access such as SSH or `http://<pi-ip>:5000` can fail even when ping works. Some repeaters, including basic TP-Link RE models such as TL-WA850RE, use MAC proxy/translation. Disable NetworkManager WiFi MAC randomization on the Pi before relying on a repeater path.
+
+Create this file:
+
+```bash
+sudo mkdir -p /etc/NetworkManager/conf.d
+sudo nano /etc/NetworkManager/conf.d/00-disable-wifi-randomization.conf
+```
+
+Add:
+
+```ini
+[device]
+wifi.scan-rand-mac-address=no
+
+[connection]
+wifi.cloned-mac-address=permanent
+ethernet.cloned-mac-address=permanent
+```
+
+Reboot:
+
+```bash
+sudo reboot
+```
+
+After reconnecting, verify the active network and test inbound access from another machine:
+
+```bash
+hostname -I
+iw dev wlan0 link
+ssh pi@<pi-ip>
+curl -I http://<pi-ip>:5000
+```
+
+For repeaters, also check that the repeater DHCP server is disabled, access control/blacklist is disabled, and firmware is current. If the main router shows a different MAC address for the Pi than `ip addr show wlan0`, that can be normal repeater proxy behavior. Reserve the IP against the MAC address that the main router actually sees.
 
 ## Troubleshooting Notes
 

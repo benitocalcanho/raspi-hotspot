@@ -45,6 +45,8 @@ Before writing the card, open **OS Customisation** and set:
 
 Raspberry Pi Connect is useful as the recovery/admin shell path when you are away from the local network. It can replace Tailscale for simple remote SSH-style maintenance. It does **not** replace ngrok for guest/admin web access to the app.
 
+If the Pi will connect through a WiFi repeater/range extender, especially with a USB WiFi adapter, disable WiFi MAC randomization after first login. See the WiFi note in [INSTALL_PI2B.md](INSTALL_PI2B.md). Repeaters can use MAC proxying, and local SSH/app access may fail even while ping works unless the WiFi profile is stable.
+
 After writing the card, boot the Pi and wait a minute or two for first-boot setup to finish. Then connect using one of:
 
 ```bash
