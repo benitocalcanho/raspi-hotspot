@@ -35,7 +35,9 @@ async function handleLogin() {
   error.value = ''
   loading.value = true
   try {
-    const user = await authStore.login(username.value, password.value)
+    const cleanUsername = username.value.trim()
+    username.value = cleanUsername
+    const user = await authStore.login(cleanUsername, password.value)
     if (user.role === 'admin') {
       router.push('/admin')
     } else if (['cleaner', 'guest', 'user'].includes(user.role)) {
