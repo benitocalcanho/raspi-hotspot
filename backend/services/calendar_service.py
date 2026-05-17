@@ -113,24 +113,64 @@ def _parse_ical_events_active_today(ical_text: str, today: Optional[date] = None
     return active_events
 
 
-def _checkin_time_for_app(app) -> time:
-    """Return configured check-in time as a local time object."""
+def _parse_ical_events_ending_today(ical_text: str, today: Optional[date] = None):
+    """Return events whose exclusive DTEND is today, i.e. checkout-day events."""
+    unfolded = re.sub(r"\r?\n[ \t]", "", ical_text)
+    target_day = today or date.today()
+    ending_events = []
+    for block in re.split(r"BEGIN:VEVENT", unfolded):
+        m_start = re.search(r"DTSTART[^:]*:(\d{8})", block)
+        m_end = re.search(r"DTEND[^:]*:(\d{8})", block)
+        m_summary = re.search(r"SUMMARY:(.*)", block)
+        if not (m_start and m_end and m_summary):
+            continue
+        dt_start = datetime.strptime(m_start.group(1), "%Y%m%d").date()
+        dt_end = datetime.strptime(m_end.group(1), "%Y%m%d").date()
+        if dt_end == target_day and dt_start < dt_end:
+            ending_events.append((m_summary.group(1).strip(), dt_start, dt_end))
+    return ending_events
+
+
+def _configured_time_for_app(app, key: str, default: str) -> time:
+    """Return a configured local HH:MM setting as a time object."""
     try:
         from models.setting import Setting
-        checkin_str = (Setting.get("CHECKIN_TIME") or app.config.get("CHECKIN_TIME", "14:00"))
+        value = Setting.get(key) or app.config.get(key, default)
     except Exception:
-        checkin_str = app.config.get("CHECKIN_TIME", "14:00")
-    h, m = _parse_time(checkin_str)
+        value = app.config.get(key, default)
+    h, m = _parse_time(value)
     return time(hour=h, minute=m)
 
 
-def _event_available_for_guest(dt_start: date, today: date, now_local: datetime, checkin_time: time) -> bool:
-    """Calendar all-day events become guest-active at check-in on DTSTART."""
-    if dt_start < today:
+def _checkin_time_for_app(app) -> time:
+    return _configured_time_for_app(app, "CHECKIN_TIME", "14:00")
+
+
+def _checkout_time_for_app(app) -> time:
+    return _configured_time_for_app(app, "CHECKOUT_TIME", "12:00")
+
+
+def _event_available_for_guest(
+    dt_start: date,
+    dt_end: date,
+    today: date,
+    now_local: datetime,
+    checkin_time: time,
+    checkout_time: time,
+) -> bool:
+    """Return whether an all-day booking should currently grant guest access."""
+    if dt_start < today < dt_end:
         return True
-    if dt_start > today:
-        return False
-    return now_local.time() >= checkin_time
+    if dt_end == today:
+        return now_local.time() < checkout_time
+    if dt_start == today:
+        return now_local.time() >= checkin_time
+    return False
+
+
+def _event_is_ongoing_at_checkout(dt_start: date, dt_end: date, today: date) -> bool:
+    """At checkout time, only keep stays that continue after today."""
+    return dt_start < today < dt_end
 
 
 def sync_calendar_ical(app) -> dict:
@@ -180,16 +220,23 @@ def sync_calendar_ical(app) -> dict:
         today = local_today(app=app)
         now_local = local_now(app=app)
         checkin_time = _checkin_time_for_app(app)
+        checkout_time = _checkout_time_for_app(app)
         active_events = _parse_ical_events_active_today(resp.text, today=today)
+        checkout_events = _parse_ical_events_ending_today(resp.text, today=today)
+        candidate_events = active_events + checkout_events
         guest_ready_events = [
-            event for event in active_events
-            if _event_available_for_guest(event[1], today, now_local, checkin_time)
+            event for event in candidate_events
+            if _event_available_for_guest(event[1], event[2], today, now_local, checkin_time, checkout_time)
         ]
         if not guest_ready_events:
             if active_events:
                 result["status"] = "pending_checkin"
                 result["guest_event_title"] = active_events[0][0]
                 result["guest_valid_until"] = active_events[0][2].isoformat()
+            elif checkout_events:
+                result["status"] = "checked_out"
+                result["guest_event_title"] = checkout_events[0][0]
+                result["guest_valid_until"] = checkout_events[0][2].isoformat()
             # No guest currently eligible — delete guests and activate/create cleaner
             old_guests = User.query.filter_by(created_by="calendar", role="guest").all()
             result["guests_deleted"] = len(old_guests)
@@ -460,7 +507,7 @@ def checkout_guests(app) -> None:
             return
         today = local_today(app=app)
         active_events = _parse_ical_events_active_today(resp.text, today=today)
-        ongoing_events = [event for event in active_events if event[1] < today]
+        ongoing_events = [event for event in active_events if _event_is_ongoing_at_checkout(event[1], event[2], today)]
         if ongoing_events:
             # Ongoing multi-day stay: keep guest, ensure cleaner is deactivated
             logger.info("Checkout job: ongoing event(s) found, not deleting guest.")

@@ -65,10 +65,12 @@ Two cron jobs run daily (times configurable in dashboard):
 
 | Time | Action |
 |------|--------|
-| `CHECKOUT_TIME` (default 12:00) | Re-checks the calendar. **If no ongoing multi-day event started before today:** deletes all calendar-created guest accounts, then creates/reactivates the cleaner account. A new event that starts today does **not** activate yet. **If an event started before today and still spans today:** guest account is kept, cleaner stays deactivated. |
-| `CHECKIN_TIME` (default 14:00) | Fetches iCal, finds the event eligible for guest access (`DTSTART < today`, or `DTSTART == today` and local time is at/after check-in), creates or updates the guest account, deactivates the cleaner account. |
+| `CHECKOUT_TIME` (default 12:00) | Re-checks the calendar. If a previous booking has `DTEND == today`, the guest remains valid until this time, then calendar-created guests are deleted and cleaner is created/reactivated. If an event started before today and still continues after today (`DTSTART < today < DTEND`), guest access is kept and cleaner stays deactivated. A new event that starts today does **not** activate yet. |
+| `CHECKIN_TIME` (default 14:00) | Fetches iCal, finds the event eligible for guest access (`DTSTART < today < DTEND`, checkout-day `DTEND == today` before checkout time, or `DTSTART == today` at/after check-in), creates or updates the guest account, deactivates the cleaner account. |
 
 An event is **active today** when: `DTSTART ≤ today < DTEND` (iCal DTEND is exclusive).
+
+For accommodation calendars, create all-day events exactly as you normally would. Example: if a guest stays from May 1 and checks out at noon on May 4, create an all-day event from May 1 through May 3. Most calendars export that as `DTSTART=May 1` and exclusive `DTEND=May 4`; Invisible Key treats May 4 as the checkout date and keeps guest access until `CHECKOUT_TIME`.
 
 ### Timezone Behavior
 
@@ -83,7 +85,7 @@ An event is **active today** when: `DTSTART ≤ today < DTEND` (iCal DTEND is ex
 
 The cleaner account is toggled automatically so the cleaner can access the property only between guest stays:
 
-1. **Guest checks out** (checkout job runs, no active event today) — cleaner account is created (if missing) or activated. The cleaner can now log in and access the door buttons.
+1. **Guest checks out** (checkout job runs on the event's exclusive `DTEND` date) — calendar-created guest accounts are deleted, and the cleaner account is created (if missing) or activated. The cleaner can now log in and access the door buttons.
 2. **New guest checks in** (check-in job runs at/after check-in time and an eligible event is found) — cleaner account is deactivated. Guest account is created or updated. The cleaner loses access while a guest is in the property.
 3. **Multi-day stay** — if the checkout job runs while the event still covers today, the guest account is untouched and the cleaner remains deactivated for the full duration.
 

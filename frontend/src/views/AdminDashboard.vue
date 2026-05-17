@@ -216,6 +216,8 @@ const syncMessages = computed(() => {
     return [{ type: 'error', text: `Sync error: ${d.error}` }]
   if (d.status === 'pending_checkin')
     return [{ type: 'info', text: `Calendar event found: "${d.guest_event_title}". Guest access will activate at check-in time.` }]
+  if (d.status === 'checked_out')
+    return [{ type: 'success', text: `Checkout passed for "${d.guest_event_title}". Guest access is removed and cleaner access is active.` }]
   const msgs = []
   if (d.guest_created)
     msgs.push({ type: 'success', text: `Guest account created: ${d.guest_username} (from "${d.guest_event_title}") — active until ${formatDate(d.guest_valid_until)}` })

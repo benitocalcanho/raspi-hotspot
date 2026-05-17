@@ -12,7 +12,7 @@ from flask import current_app
 from services import gpio_service
 from services.audit_service import log_event
 from utils.decorators import require_roles
-from utils.timezone_utils import local_today
+from utils.guest_access import guest_stay_has_ended
 
 gpio_bp = Blueprint("gpio", __name__)
 MAX_PULSE_SECONDS = 30
@@ -85,7 +85,7 @@ def toggle_pin(pin_number):
 
     # Gather details for email
     user = User.query.get(user_id)
-    if user and user.valid_until and local_today(app=current_app) >= user.valid_until:
+    if user and guest_stay_has_ended(user.valid_until, app=current_app):
         return jsonify({"error": "Your stay has ended."}), 403
     device = request.headers.get("User-Agent", "Unknown")
     button_label = getattr(pin, "label", f"Pin {pin_number}")

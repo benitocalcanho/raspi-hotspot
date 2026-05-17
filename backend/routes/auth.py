@@ -14,7 +14,7 @@ from flask import current_app
 from models.user import User
 from models import db
 from services.audit_service import log_event
-from utils.timezone_utils import local_today
+from utils.guest_access import guest_stay_has_ended
 
 auth_bp = Blueprint("auth", __name__)
 
@@ -40,7 +40,7 @@ def login():
         )
         return jsonify({"error": "Invalid credentials."}), 401
 
-    if user.valid_until and local_today(app=current_app) >= user.valid_until:
+    if guest_stay_has_ended(user.valid_until, app=current_app):
         log_event("login_failed", user_id=user.id, detail={"username": username, "reason": "stay_ended"})
         return jsonify({"error": "Your stay has ended."}), 403
 
@@ -63,7 +63,7 @@ def refresh():
     identity = get_jwt_identity()
     claims = get_jwt()
     user = User.query.get(int(identity))
-    if user and user.valid_until and local_today(app=current_app) >= user.valid_until:
+    if user and guest_stay_has_ended(user.valid_until, app=current_app):
         return jsonify({"error": "Your stay has ended."}), 401
     access_token = create_access_token(
         identity=identity,
