@@ -65,8 +65,8 @@ Two cron jobs run daily (times configurable in dashboard):
 
 | Time | Action |
 |------|--------|
-| `CHECKOUT_TIME` (default 12:00) | Re-checks the calendar. **If no event is active today:** deletes all calendar-created guest accounts, then creates the cleaner account if it doesn't exist yet, or reactivates it if it does. **If an event still spans today** (multi-day stay): guest account is kept, cleaner stays deactivated. |
-| `CHECKIN_TIME` (default 14:00) | Fetches iCal, finds any event active today (`DTSTART ≤ today < DTEND`), creates or updates the guest account, deactivates the cleaner account. |
+| `CHECKOUT_TIME` (default 12:00) | Re-checks the calendar. **If no ongoing multi-day event started before today:** deletes all calendar-created guest accounts, then creates/reactivates the cleaner account. A new event that starts today does **not** activate yet. **If an event started before today and still spans today:** guest account is kept, cleaner stays deactivated. |
+| `CHECKIN_TIME` (default 14:00) | Fetches iCal, finds the event eligible for guest access (`DTSTART < today`, or `DTSTART == today` and local time is at/after check-in), creates or updates the guest account, deactivates the cleaner account. |
 
 An event is **active today** when: `DTSTART ≤ today < DTEND` (iCal DTEND is exclusive).
 
@@ -84,7 +84,7 @@ An event is **active today** when: `DTSTART ≤ today < DTEND` (iCal DTEND is ex
 The cleaner account is toggled automatically so the cleaner can access the property only between guest stays:
 
 1. **Guest checks out** (checkout job runs, no active event today) — cleaner account is created (if missing) or activated. The cleaner can now log in and access the door buttons.
-2. **New guest checks in** (check-in job runs, active event found) — cleaner account is deactivated. Guest account is created or updated. The cleaner loses access while a guest is in the property.
+2. **New guest checks in** (check-in job runs at/after check-in time and an eligible event is found) — cleaner account is deactivated. Guest account is created or updated. The cleaner loses access while a guest is in the property.
 3. **Multi-day stay** — if the checkout job runs while the event still covers today, the guest account is untouched and the cleaner remains deactivated for the full duration.
 
 The cleaner username and password are configured in **Calendar Sync -> Cleaner Account**.

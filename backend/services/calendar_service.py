@@ -8,7 +8,7 @@ single active guest account to that name.
 """
 import logging
 import re
-from datetime import date, datetime, timezone
+from datetime import date, datetime, time, timezone
 from typing import Optional, Dict
 
 from utils.timezone_utils import get_effective_timezone, get_effective_timezone_info, local_today
@@ -113,6 +113,26 @@ def _parse_ical_events_active_today(ical_text: str, today: Optional[date] = None
     return active_events
 
 
+def _checkin_time_for_app(app) -> time:
+    """Return configured check-in time as a local time object."""
+    try:
+        from models.setting import Setting
+        checkin_str = (Setting.get("CHECKIN_TIME") or app.config.get("CHECKIN_TIME", "14:00"))
+    except Exception:
+        checkin_str = app.config.get("CHECKIN_TIME", "14:00")
+    h, m = _parse_time(checkin_str)
+    return time(hour=h, minute=m)
+
+
+def _event_available_for_guest(dt_start: date, today: date, now_local: datetime, checkin_time: time) -> bool:
+    """Calendar all-day events become guest-active at check-in on DTSTART."""
+    if dt_start < today:
+        return True
+    if dt_start > today:
+        return False
+    return now_local.time() >= checkin_time
+
+
 def sync_calendar_ical(app) -> dict:
     """
     iCal-based sync: fetch the private iCal URL, find events active today,
@@ -157,9 +177,20 @@ def sync_calendar_ical(app) -> dict:
             result["error"] = str(exc)
             return result
 
-        active_events = _parse_ical_events_active_today(resp.text, today=local_today(app=app))
-        if not active_events:
-            # No ongoing event — delete guests and activate/create cleaner
+        today = local_today(app=app)
+        now_local = local_now(app=app)
+        checkin_time = _checkin_time_for_app(app)
+        active_events = _parse_ical_events_active_today(resp.text, today=today)
+        guest_ready_events = [
+            event for event in active_events
+            if _event_available_for_guest(event[1], today, now_local, checkin_time)
+        ]
+        if not guest_ready_events:
+            if active_events:
+                result["status"] = "pending_checkin"
+                result["guest_event_title"] = active_events[0][0]
+                result["guest_valid_until"] = active_events[0][2].isoformat()
+            # No guest currently eligible — delete guests and activate/create cleaner
             old_guests = User.query.filter_by(created_by="calendar", role="guest").all()
             result["guests_deleted"] = len(old_guests)
             for old in old_guests:
@@ -192,11 +223,11 @@ def sync_calendar_ical(app) -> dict:
                     db.session.add(cleaner)
                 result["cleaner_activated"] = True
             db.session.commit()
-            logger.info("iCal sync: no active events today. Deleted %d calendar guest(s).", result["guests_deleted"])
+            logger.info("iCal sync: no guest eligible yet. Deleted %d calendar guest(s).", result["guests_deleted"])
             return result
 
-        # Use the first active event
-        raw_name, dt_start, dt_end = active_events[0][0], active_events[0][1], active_events[0][2]
+        # Use the first event currently eligible for guest access
+        raw_name, dt_start, dt_end = guest_ready_events[0][0], guest_ready_events[0][1], guest_ready_events[0][2]
         first_word = raw_name.split()[0] if raw_name.split() else raw_name
         new_username = normalize_username(first_word)
         if not new_username:
@@ -427,8 +458,10 @@ def checkout_guests(app) -> None:
         except Exception as exc:
             logger.error("iCal fetch failed during checkout: %s", exc)
             return
-        active_events = _parse_ical_events_active_today(resp.text, today=local_today(app=app))
-        if active_events:
+        today = local_today(app=app)
+        active_events = _parse_ical_events_active_today(resp.text, today=today)
+        ongoing_events = [event for event in active_events if event[1] < today]
+        if ongoing_events:
             # Ongoing multi-day stay: keep guest, ensure cleaner is deactivated
             logger.info("Checkout job: ongoing event(s) found, not deleting guest.")
             cleaner = User.query.filter_by(role="cleaner").first()
