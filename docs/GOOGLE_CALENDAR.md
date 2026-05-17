@@ -46,8 +46,8 @@ The **first word** of the event title becomes the guest's username (lowercased, 
 
 | Mode | Behaviour |
 |------|-----------|
-| **Fixed password** | All guests get the same password configured in the dashboard |
-| **Last word of event title** | The last word of the title is used as the password — useful for using the last 4 digits of the guest's phone number |
+| **Fixed password** | All guests get the same password configured in the dashboard (guest passwords may be 4+ characters) |
+| **Last word of event title** | The last word of the title is used as the password — useful for using the last 4 digits of the guest's phone number (4+ characters allowed for guests) |
 
 **Example event titles:**
 

@@ -55,7 +55,7 @@
 
       <form v-if="showCreate" @submit.prevent="createUser" class="create-form">
         <input v-model="newUser.username" placeholder="Username" required />
-        <input v-model="newUser.password" type="password" placeholder="Password (min 8 chars)" required />
+        <input v-model="newUser.password" type="password" placeholder="Password (guest min 4, others min 8)" required />
         <select v-model="newUser.role">
           <option value="user">User</option>
           <option value="guest">Guest</option>

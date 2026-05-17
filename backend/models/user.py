@@ -22,6 +22,9 @@ from utils.datetime_utils import utc_isoformat
 class User(db.Model):
     __tablename__ = "users"
 
+    MIN_PASSWORD_LENGTH = 8
+    GUEST_MIN_PASSWORD_LENGTH = 4
+
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(80), unique=True, nullable=False, index=True)
     email = db.Column(db.String(120), unique=True, nullable=False, index=True)
@@ -44,9 +47,13 @@ class User(db.Model):
         normalized = re.sub(r"[^a-z0-9._-]", "_", username.strip().lower())
         return f"{normalized}@local.user"
 
+    def minimum_password_length(self) -> int:
+        return self.GUEST_MIN_PASSWORD_LENGTH if self.role == "guest" else self.MIN_PASSWORD_LENGTH
+
     def set_password(self, raw_password: str) -> None:
-        if len(raw_password) < 8:
-            raise ValueError("Password must be at least 8 characters.")
+        min_length = self.minimum_password_length()
+        if len(raw_password) < min_length:
+            raise ValueError(f"Password must be at least {min_length} characters.")
         self.password_hash = bcrypt.hashpw(
             raw_password.encode("utf-8"), bcrypt.gensalt()
         ).decode("utf-8")
