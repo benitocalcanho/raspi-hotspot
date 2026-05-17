@@ -72,6 +72,8 @@ An event is **active today** when: `DTSTART ≤ today < DTEND` (iCal DTEND is ex
 
 For accommodation calendars, create all-day events exactly as you normally would. Example: if a guest stays from May 1 and checks out at noon on May 4, create an all-day event from May 1 through May 3. Most calendars export that as `DTSTART=May 1` and exclusive `DTEND=May 4`; Invisible Key treats May 4 as the checkout date and keeps guest access until `CHECKOUT_TIME`.
 
+If you accidentally create a timed event instead of an all-day event, Invisible Key intentionally ignores the event clock times and uses only the calendar dates. For example, a timed event from June 1 14:36 to June 4 10:00 is treated as June 1 check-in day through June 4 checkout day, using the configured `CHECKIN_TIME` and `CHECKOUT_TIME`.
+
 ### Timezone Behavior
 
 - Scheduler and `today` calculations use deployment-local timezone detected at runtime.

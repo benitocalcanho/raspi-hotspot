@@ -11,7 +11,7 @@ import re
 from datetime import date, datetime, time, timezone
 from typing import Optional, Dict
 
-from utils.timezone_utils import get_effective_timezone, get_effective_timezone_info, local_today
+from utils.timezone_utils import get_effective_timezone, get_effective_timezone_info, local_now, local_today
 
 logger = logging.getLogger(__name__)
 _scheduler = None  # module-level reference so it can be shut down on restart
@@ -89,45 +89,45 @@ def next_available_username(User, base_username: str) -> str:
 # ── iCal sync (simple mode) ───────────────────────────────────────────────────
 
 
+def _parse_ical_events(ical_text: str):
+    """Return (SUMMARY, DTSTART date, DTEND date) tuples from all-day or timed iCal events."""
+    unfolded = re.sub(r"\r?\n[ \t]", "", ical_text)
+    events = []
+    for block in re.split(r"BEGIN:VEVENT", unfolded):
+        m_start = re.search(r"DTSTART[^:]*:(\d{8})(?:T\d{6}Z?)?", block)
+        m_end = re.search(r"DTEND[^:]*:(\d{8})(?:T\d{6}Z?)?", block)
+        m_summary = re.search(r"SUMMARY:(.*)", block)
+        if not (m_start and m_end and m_summary):
+            continue
+        dt_start = datetime.strptime(m_start.group(1), "%Y%m%d").date()
+        dt_end = datetime.strptime(m_end.group(1), "%Y%m%d").date()
+        if dt_start <= dt_end:
+            events.append((m_summary.group(1).strip(), dt_start, dt_end))
+    return events
+
+
 # New: Parse all events and return those active today (today in [DTSTART, DTEND))
 def _parse_ical_events_active_today(ical_text: str, today: Optional[date] = None):
     """
     Parse an iCal string and return a list of (SUMMARY, DTSTART, DTEND) tuples for events active today.
     Handles line folding (RFC 5545: continuation lines start with a space/tab).
     """
-    unfolded = re.sub(r"\r?\n[ \t]", "", ical_text)
     target_day = today or date.today()
     active_events = []
-    for block in re.split(r"BEGIN:VEVENT", unfolded):
-        # DTSTART
-        m_start = re.search(r"DTSTART[^:]*:(\d{8})", block)
-        m_end = re.search(r"DTEND[^:]*:(\d{8})", block)
-        m_summary = re.search(r"SUMMARY:(.*)", block)
-        if not (m_start and m_end and m_summary):
-            continue
-        dt_start = datetime.strptime(m_start.group(1), "%Y%m%d").date()
-        dt_end = datetime.strptime(m_end.group(1), "%Y%m%d").date()
+    for title, dt_start, dt_end in _parse_ical_events(ical_text):
         # iCal: DTEND is exclusive, so event is active if today in [start, end)
         if dt_start <= target_day < dt_end:
-            active_events.append((m_summary.group(1).strip(), dt_start, dt_end))
+            active_events.append((title, dt_start, dt_end))
     return active_events
 
 
 def _parse_ical_events_ending_today(ical_text: str, today: Optional[date] = None):
     """Return events whose exclusive DTEND is today, i.e. checkout-day events."""
-    unfolded = re.sub(r"\r?\n[ \t]", "", ical_text)
     target_day = today or date.today()
     ending_events = []
-    for block in re.split(r"BEGIN:VEVENT", unfolded):
-        m_start = re.search(r"DTSTART[^:]*:(\d{8})", block)
-        m_end = re.search(r"DTEND[^:]*:(\d{8})", block)
-        m_summary = re.search(r"SUMMARY:(.*)", block)
-        if not (m_start and m_end and m_summary):
-            continue
-        dt_start = datetime.strptime(m_start.group(1), "%Y%m%d").date()
-        dt_end = datetime.strptime(m_end.group(1), "%Y%m%d").date()
+    for title, dt_start, dt_end in _parse_ical_events(ical_text):
         if dt_end == target_day and dt_start < dt_end:
-            ending_events.append((m_summary.group(1).strip(), dt_start, dt_end))
+            ending_events.append((title, dt_start, dt_end))
     return ending_events
 
 
