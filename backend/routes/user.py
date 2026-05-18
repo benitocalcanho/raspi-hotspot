@@ -5,9 +5,9 @@ Endpoints:
     /api/user/activity: Returns audit log for the authenticated user
 """
 from flask import Blueprint, jsonify
-from flask_jwt_extended import jwt_required, get_jwt_identity
+from flask_jwt_extended import jwt_required
 
-from models.user import User
+from utils.decorators import current_user_or_response
 from models.audit_log import AuditLog
 
 user_bp = Blueprint("user", __name__)
@@ -17,10 +17,10 @@ user_bp = Blueprint("user", __name__)
 @jwt_required()
 def dashboard():
     """Return dashboard data for the currently authenticated user."""
-    user_id = int(get_jwt_identity())
-    user = User.query.get(user_id)
-    if not user or not user.is_active:
-        return jsonify({"error": "Account not found or inactive."}), 404
+    user, error = current_user_or_response()
+    if error:
+        return error
+    user_id = user.id
 
     # Last 10 login events for this user
     recent_logins = (
@@ -42,7 +42,10 @@ def dashboard():
 @jwt_required()
 def activity():
     """Return the full audit trail for the currently authenticated user."""
-    user_id = int(get_jwt_identity())
+    user, error = current_user_or_response()
+    if error:
+        return error
+    user_id = user.id
     logs = (
         AuditLog.query
         .filter_by(user_id=user_id)

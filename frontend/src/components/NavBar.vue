@@ -3,7 +3,7 @@
     <div class="brand">{{ $t('app_name') }}</div>
     <div class="links">
       <router-link v-if="authStore.user?.role === 'admin'" to="/admin">{{ $t('nav_admin') }}</router-link>
-      <router-link v-if="authStore.user?.role === 'cleaner'" to="/cleaner">{{ $t('nav_cleaner') }}</router-link>
+      <router-link v-if="authStore.user?.role === 'cleaner'" to="/guest">{{ $t('nav_cleaner') }}</router-link>
       <router-link v-if="authStore.user?.role === 'guest'" to="/guest">{{ $t('nav_guest') }}</router-link>
       <router-link v-if="authStore.user?.role === 'user'" to="/dashboard">{{ $t('nav_dashboard') }}</router-link>
       <router-link v-if="authStore.user?.role === 'admin'" to="/gpio">{{ $t('nav_gpio') }}</router-link>

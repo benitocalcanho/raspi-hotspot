@@ -11,7 +11,7 @@ from models.audit_log import AuditLog
 from services.audit_service import log_event
 from services import ngrok_service
 from services.reed_sensor_service import reed_sensor
-from utils.decorators import require_roles
+from utils.decorators import current_user_or_response, require_roles
 from utils.timezone_utils import get_effective_timezone_info, local_now
 
 
@@ -29,17 +29,18 @@ ALLOWED_ROLES = ("admin", "user", "cleaner", "guest")
 @admin_bp.route("/audit/button_press", methods=["POST"])
 @jwt_required()
 def log_button_press():
-    user_id = int(get_jwt_identity())
+    user, error = current_user_or_response()
+    if error:
+        return error
     data = request.get_json(silent=True) or {}
     button = data.get("button")
 
     # Log the button press event to the audit log
-    log_event("button_press", user_id=user_id, detail={"button": button})
+    log_event("button_press", user_id=user.id, detail={"button": button})
 
 
     # Send email notification in a background thread (non-blocking)
     from services.email_service import send_notification_email
-    user = User.query.get(user_id)
     device = request.headers.get("User-Agent", "Unknown")
     subject = f"[Invisible Key] {button} pressed by {user.username}"
     body = f"User: {user.username}\nRole: {user.role}\nButton: {button}\nDevice: {device}"

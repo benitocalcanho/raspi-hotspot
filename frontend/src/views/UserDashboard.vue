@@ -11,10 +11,6 @@
       <AuditLog :entries="dashboard?.recent_logins ?? []" />
     </div>
 
-    <div class="section">
-      <h3>{{ $t('gpio_controls') }}</h3>
-      <GpioPanel />
-    </div>
   </div>
 </template>
 
@@ -22,7 +18,6 @@
 import { ref, onMounted } from 'vue'
 import api from '../api.js'
 import AuditLog from '../components/AuditLog.vue'
-import GpioPanel from '../components/GpioPanel.vue'
 
 const dashboard = ref(null)
 
