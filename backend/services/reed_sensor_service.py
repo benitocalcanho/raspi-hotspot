@@ -56,18 +56,18 @@ class ReedSensorService:
             self.error = str(exc)
             app.logger.warning("Door reed sensor unavailable: %s", exc)
 
-    def get_state(self) -> str:
+    def get_state(self, persist: bool = True) -> str:
         try:
             from services.gpio_service import read_pin_state
 
-            return self._state_from_active(bool(read_pin_state(self.pin_number)))
+            return self._state_from_active(bool(read_pin_state(self.pin_number, persist=persist)))
         except Exception as exc:
             self.error = str(exc)
             return "unknown"
 
-    def status(self) -> dict:
+    def status(self, persist: bool = True) -> dict:
         return {
-            "state": self.get_state(),
+            "state": self.get_state(persist=persist),
             "enabled": self.enabled,
             "pin_number": self.pin_number,
             "error": self.error,

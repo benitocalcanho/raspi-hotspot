@@ -122,7 +122,7 @@ def _read_input_pin_state(pin_number: int) -> bool:
     return bool(device.is_pressed)
 
 
-def read_pin_state(pin_number: int) -> bool:
+def read_pin_state(pin_number: int, persist: bool = True) -> bool:
     """Read the current state of any configured pin."""
     pin = GpioPin.query.filter_by(pin_number=pin_number).first()
     if not pin:
@@ -134,7 +134,7 @@ def read_pin_state(pin_number: int) -> bool:
     else:
         live_state = _read_input_pin_state(pin_number)
 
-    if pin.state != live_state:
+    if persist and pin.state != live_state:
         pin.state = live_state
         db.session.commit()
 

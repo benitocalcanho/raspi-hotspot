@@ -16,6 +16,11 @@
         <span class="num">{{ overview.total_audit_events }}</span>
         <span class="lbl">Audit Events</span>
       </div>
+      <div class="card door-state-card">
+        <span :class="['num', 'door-state', overview.door_state]">{{ doorStateText }}</span>
+        <span class="lbl">Door State</span>
+        <span class="lbl">{{ doorSensorText }}</span>
+      </div>
       <div class="card ngrok">
         <span class="num small">{{ overview.ngrok_url || 'Offline' }}</span>
         <span class="lbl">ngrok URL</span>
@@ -204,6 +209,19 @@ function formatDate(iso) {
   if (!iso) return ''
   return new Date(iso + 'T12:00:00').toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' })
 }
+
+const doorStateText = computed(() => {
+  if (!overview.value) return 'Unknown'
+  if (overview.value.door_state === 'open') return 'OPEN'
+  if (overview.value.door_state === 'closed') return 'CLOSED'
+  return 'UNKNOWN'
+})
+
+const doorSensorText = computed(() => {
+  if (!overview.value) return ''
+  if (overview.value.door_sensor_enabled) return 'GPIO' + overview.value.door_sensor_pin
+  return overview.value.door_sensor_error ? 'Sensor unavailable' : 'Sensor disabled'
+})
 
 const syncMessages = computed(() => {
   const d = syncDetails.value
@@ -413,6 +431,10 @@ h2 { margin-bottom: 1.2rem; }
 }
 .num { font-size: 1.8rem; font-weight: 700; color: #0f3460; }
 .num.small { font-size: 0.9rem; word-break: break-all; }
+.door-state { font-size: 1.2rem; }
+.door-state.open { color: #c0392b; }
+.door-state.closed { color: #07834f; }
+.door-state.unknown { color: #666; }
 .lbl { font-size: 0.8rem; color: #888; margin-top: 0.2rem; }
 .tabs { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 1.5rem; border-bottom: 2px solid #eee; padding-bottom: 0.5rem; }
 .tabs button {

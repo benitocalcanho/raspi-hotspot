@@ -10,6 +10,7 @@ from models.user import User
 from models.audit_log import AuditLog
 from services.audit_service import log_event
 from services import ngrok_service
+from services.reed_sensor_service import reed_sensor
 from utils.decorators import require_roles
 from utils.timezone_utils import get_effective_timezone_info, local_now
 
@@ -330,6 +331,7 @@ def overview():
     active_users = User.query.filter_by(is_active=True).count()
     total_events = AuditLog.query.count()
     ngrok_url = ngrok_service.get_public_url()
+    door_status = reed_sensor.status(persist=False)
     tz_info = get_effective_timezone_info()
     now_dt = local_now()
     tz_name = tz_info["name"]
@@ -340,6 +342,10 @@ def overview():
         "active_users": active_users,
         "total_audit_events": total_events,
         "ngrok_url": ngrok_url,
+        "door_state": door_status.get("state", "unknown"),
+        "door_sensor_enabled": door_status.get("enabled", False),
+        "door_sensor_pin": door_status.get("pin_number"),
+        "door_sensor_error": door_status.get("error"),
         "system_time": now,
         "timezone_name": tz_name,
         "timezone_offset": tz_offset,
