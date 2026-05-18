@@ -414,10 +414,11 @@ h2 { margin-bottom: 1.2rem; }
 .num { font-size: 1.8rem; font-weight: 700; color: #0f3460; }
 .num.small { font-size: 0.9rem; word-break: break-all; }
 .lbl { font-size: 0.8rem; color: #888; margin-top: 0.2rem; }
-.tabs { display: flex; gap: 0.5rem; margin-bottom: 1.5rem; border-bottom: 2px solid #eee; padding-bottom: 0.5rem; }
+.tabs { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 1.5rem; border-bottom: 2px solid #eee; padding-bottom: 0.5rem; }
 .tabs button {
   padding: 0.4rem 1rem; border: none; background: none; cursor: pointer;
   font-size: 0.95rem; border-radius: 6px 6px 0 0; color: #666;
+  flex: 0 0 auto; white-space: nowrap;
 }
 .tabs button.active { background: #0f3460; color: white; }
 .section-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem; }
