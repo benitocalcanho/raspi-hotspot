@@ -1,36 +1,36 @@
 <template>
   <div>
-    <h2>Admin Dashboard</h2>
+    <h2>{{ $t('admin_dashboard') }}</h2>
 
     <!-- Overview cards -->
     <div class="cards" v-if="overview">
       <div class="card">
         <span class="num">{{ overview.total_users }}</span>
-        <span class="lbl">Total Users</span>
+        <span class="lbl">{{ $t('total_users') }}</span>
       </div>
       <div class="card">
         <span class="num">{{ overview.active_users }}</span>
-        <span class="lbl">Active Users</span>
+        <span class="lbl">{{ $t('active_users') }}</span>
       </div>
       <div class="card">
         <span class="num">{{ overview.total_audit_events }}</span>
-        <span class="lbl">Audit Events</span>
+        <span class="lbl">{{ $t('audit_events') }}</span>
       </div>
       <div class="card door-state-card">
-        <span :class="['num', 'door-state', overview.door_state]">{{ doorStateText }}</span>
-        <span class="lbl">Door State</span>
+        <span :class="['num', 'door-state', overview.door_state]">{{ $t(doorStateText) }}</span>
+        <span class="lbl">{{ $t('door_state') }}</span>
         <span class="lbl">{{ doorSensorText }}</span>
       </div>
       <div class="card ngrok">
-        <span class="num small">{{ overview.ngrok_url || 'Offline' }}</span>
-        <span class="lbl">ngrok URL</span>
-        <button @click="restartNgrok" class="btn-sm">Restart</button>
+        <span class="num small">{{ overview.ngrok_url || $t('offline') }}</span>
+        <span class="lbl">{{ $t('ngrok_url') }}</span>
+        <button @click="restartNgrok" class="btn-sm">{{ $t('restart') }}</button>
       </div>
       <div class="card tz-info">
         <span class="num small">{{ overview.timezone_name }} (UTC{{ overview.timezone_offset >= 0 ? '+' : '' }}{{ overview.timezone_offset }})</span>
-        <span class="lbl">System Timezone</span>
+        <span class="lbl">{{ $t('system_timezone') }}</span>
         <span class="num small">{{ overview.system_time }}</span>
-        <span class="lbl">System Time</span>
+        <span class="lbl">{{ $t('system_time') }}</span>
       </div>
     </div>
 
@@ -41,33 +41,33 @@
         :class="{active: tab === item.key}"
         @click="goToTab(item.key)"
       >
-        {{ item.label }}
+        {{ $t(item.labelKey) }}
       </button>
     </div>
 
     <!-- Door Log tab -->
     <section v-if="tab === 'doorlog'">
-      <h3>Door Log</h3>
+      <h3>{{ $t('tab_doorlog') }}</h3>
       <DoorLog />
     </section>
 
     <!-- Users tab -->
     <section v-if="tab === 'users'">
       <div class="section-header">
-        <h3>User Management</h3>
-        <button @click="showCreate = !showCreate" class="btn-primary">+ New User</button>
+        <h3>{{ $t('user_management') }}</h3>
+        <button @click="showCreate = !showCreate" class="btn-primary">{{ $t('new_user') }}</button>
       </div>
 
       <form v-if="showCreate" @submit.prevent="createUser" class="create-form">
-        <input v-model="newUser.username" placeholder="Username" required />
-        <input v-model="newUser.password" type="password" placeholder="Password (guest min 4, others min 8)" required />
+        <input v-model="newUser.username" :placeholder="$t('username')" required />
+        <input v-model="newUser.password" type="password" :placeholder="$t('password_min')" required />
         <select v-model="newUser.role">
-          <option value="user">User</option>
-          <option value="guest">Guest</option>
-          <option value="cleaner">Cleaner</option>
-          <option value="admin">Admin</option>
+          <option value="user">{{ $t('user') }}</option>
+          <option value="guest">{{ $t('guest') }}</option>
+          <option value="cleaner">{{ $t('cleaner') }}</option>
+          <option value="admin">{{ $t('admin') }}</option>
         </select>
-        <button type="submit">Create</button>
+        <button type="submit">{{ $t('create') }}</button>
         <p v-if="createError" class="error">{{ createError }}</p>
       </form>
 
@@ -76,13 +76,13 @@
 
     <!-- Button History tab -->
     <section v-if="tab === 'buttonhistory'">
-      <h3>Button History</h3>
+      <h3>{{ $t('tab_buttonhistory') }}</h3>
       <ButtonHistoryTable />
     </section>
 
     <!-- Audit tab -->
     <section v-if="tab === 'audit'">
-      <h3>Audit Log</h3>
+      <h3>{{ $t('tab_audit') }}</h3>
       <p v-if="auditError" class="error">{{ auditError }}</p>
       <AuditLog :entries="auditEntries" />
       <button
@@ -98,31 +98,31 @@
 
     <!-- ngrok Tunnel tab -->
     <section v-if="tab === 'settings'">
-      <h3>ngrok Tunnel Settings</h3>
+      <h3>{{ $t('section_ngrok') }}</h3>
       <p class="hint">Changes take effect immediately — no restart needed.</p>
       <SettingsPanel :onlySection="null" />
     </section>
 
     <!-- Email tab -->
     <section v-if="tab === 'email'">
-      <h3>Email Notifications</h3>
+      <h3>{{ $t('section_email') }}</h3>
       <p class="hint">Configure SMTP server and recipient for notification emails. These settings are used to send alerts when a user presses a button.</p>
       <SettingsPanel :onlySection="'email'" />
     </section>
 
     <!-- Calendar tab -->
     <section v-if="tab === 'calendar'">
-      <h3>Google Calendar Settings</h3>
+      <h3>{{ $t('tab_calendar') }}</h3>
       <SettingsPanel :onlySection="'ical'" />
       <SettingsPanel :onlySection="'guest_password'" />
       <SettingsPanel :onlySection="'schedule'" />
       <SettingsPanel :onlySection="'cleaner'" />
       <div class="btn-row mt">
         <button @click="triggerSync" :disabled="syncing" class="btn-primary">
-          {{ syncing ? 'Syncing…' : 'Sync Now' }}
+          {{ syncing ? $t('syncing') : $t('sync_now') }}
         </button>
         <button @click="restartScheduler" :disabled="restarting" class="btn-secondary">
-          {{ restarting ? 'Restarting…' : 'Apply Schedule Changes' }}
+          {{ restarting ? $t('restarting') : $t('apply_schedule_changes') }}
         </button>
       </div>
       <div v-if="syncDetails" class="sync-summary">
@@ -135,25 +135,25 @@
 
     <!-- WiFi Networks tab -->
     <section v-if="tab === 'wifi'">
-      <h3>WiFi Networks</h3>
+      <h3>{{ $t('tab_wifi') }}</h3>
       <p class="hint">Manage the networks your Raspberry Pi can connect to. Use this when moving the Pi to a new location with a different WiFi.</p>
       <WifiManager />
     </section>
 
     <!-- Door Images tab -->
     <section v-if="tab === 'doors'">
-      <h3>Door Images</h3>
+      <h3>{{ $t('tab_doors') }}</h3>
       <p class="hint">Upload background photos shown on the guest dashboard door cards.</p>
 
       <div class="door-upload-grid">
         <div v-for="door in doorSlots" :key="door.key" class="door-slot">
-          <h4>{{ door.label }}</h4>
+          <h4>{{ $t(door.labelKey) }}</h4>
           <div class="door-preview" :style="doorImages[door.key] ? `background-image:url('${doorImages[door.key]}?t=${cacheBust}')` : ''">
-            <span v-if="!doorImages[door.key]" class="no-img">No image uploaded</span>
+            <span v-if="!doorImages[door.key]" class="no-img">{{ $t('no_image_uploaded') }}</span>
           </div>
           <label class="upload-label">
             <input type="file" accept="image/*" @change="uploadDoorImage(door.key, $event)" />
-            Choose photo
+            {{ $t('choose_photo') }}
           </label>
           <p v-if="doorUploadMsg[door.key]" class="success">{{ doorUploadMsg[door.key] }}</p>
           <p v-if="doorUploadErr[door.key]" class="error">{{ doorUploadErr[door.key] }}</p>
@@ -165,6 +165,7 @@
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import ButtonHistoryTable from '../components/ButtonHistoryTable.vue'
 import DoorLog from '../components/DoorLog.vue'
 import api from '../api.js'
@@ -176,16 +177,17 @@ import WifiManager from '../components/WifiManager.vue'
 // ...existing code...
 const route = useRoute()
 const router = useRouter()
+const { t } = useI18n()
 const adminTabs = [
-  { key: 'users', slug: 'users', label: 'Users' },
-  { key: 'audit', slug: 'audit', label: 'Audit Log' },
-  { key: 'doorlog', slug: 'door-log', label: 'Door Log' },
-  { key: 'buttonhistory', slug: 'button-history', label: 'Button History' },
-  { key: 'wifi', slug: 'wifi', label: 'WiFi Networks' },
-  { key: 'settings', slug: 'ngrok', label: 'ngrok Tunnel' },
-  { key: 'calendar', slug: 'calendar', label: 'Calendar Sync' },
-  { key: 'email', slug: 'email', label: 'Email' },
-  { key: 'doors', slug: 'door-images', label: 'Door Images' },
+  { key: 'users', slug: 'users', labelKey: 'tab_users' },
+  { key: 'audit', slug: 'audit', labelKey: 'tab_audit' },
+  { key: 'doorlog', slug: 'door-log', labelKey: 'tab_doorlog' },
+  { key: 'buttonhistory', slug: 'button-history', labelKey: 'tab_buttonhistory' },
+  { key: 'wifi', slug: 'wifi', labelKey: 'tab_wifi' },
+  { key: 'settings', slug: 'ngrok', labelKey: 'tab_ngrok' },
+  { key: 'calendar', slug: 'calendar', labelKey: 'tab_calendar' },
+  { key: 'email', slug: 'email', labelKey: 'tab_email' },
+  { key: 'doors', slug: 'door-images', labelKey: 'tab_doors' },
 ]
 const tabBySlug = Object.fromEntries(adminTabs.map((item) => [item.slug, item.key]))
 const slugByTab = Object.fromEntries(adminTabs.map((item) => [item.key, item.slug]))
@@ -211,16 +213,16 @@ function formatDate(iso) {
 }
 
 const doorStateText = computed(() => {
-  if (!overview.value) return 'Unknown'
-  if (overview.value.door_state === 'open') return 'OPEN'
-  if (overview.value.door_state === 'closed') return 'CLOSED'
-  return 'UNKNOWN'
+  if (!overview.value) return 'door_state_unknown'
+  if (overview.value.door_state === 'open') return 'door_state_open'
+  if (overview.value.door_state === 'closed') return 'door_state_closed'
+  return 'door_state_unknown'
 })
 
 const doorSensorText = computed(() => {
   if (!overview.value) return ''
   if (overview.value.door_sensor_enabled) return 'GPIO' + overview.value.door_sensor_pin
-  return overview.value.door_sensor_error ? 'Sensor unavailable' : 'Sensor disabled'
+  return overview.value.door_sensor_error ? t('sensor_unavailable') : t('sensor_disabled')
 })
 
 const syncMessages = computed(() => {
@@ -260,8 +262,8 @@ const scheduleInfo = ref(null)
 
 // Door images
 const doorSlots = [
-  { key: 'building_door', label: 'Building Door' },
-  { key: 'apartment_door', label: 'Apartment Door' },
+  { key: 'building_door', labelKey: 'building_door' },
+  { key: 'apartment_door', labelKey: 'apartment_door' },
 ]
 const doorImages = ref({ building_door: null, apartment_door: null })
 const doorUploadMsg = ref({ building_door: '', apartment_door: '' })

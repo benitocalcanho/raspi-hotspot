@@ -2,15 +2,15 @@
   <div class="door-log">
     <div class="door-status">
       <div>
-        <span class="lbl">Current state</span>
+        <span class="lbl">{{ $t('doorLog.current') }}</span>
         <strong :class="['state', status.state]">{{ statusText }}</strong>
       </div>
       <div>
-        <span class="lbl">Sensor</span>
+        <span class="lbl">{{ $t('sensor') }}</span>
         <strong>{{ sensorText }}</strong>
       </div>
       <button class="btn-sm" @click="load" :disabled="loading">
-        {{ loading ? 'Refreshing...' : 'Refresh' }}
+        {{ loading ? $t('refreshing') : $t('doorLog.refresh') }}
       </button>
     </div>
 
@@ -19,14 +19,14 @@
     <table class="log-table">
       <thead>
         <tr>
-          <th>Timestamp</th>
-          <th>State</th>
-          <th>Source</th>
+          <th>{{ $t('doorLog.timestamp') }}</th>
+          <th>{{ $t('doorLog.state') }}</th>
+          <th>{{ $t('source') }}</th>
         </tr>
       </thead>
       <tbody>
         <tr v-if="!events.length">
-          <td colspan="3" class="muted">No door events recorded yet.</td>
+          <td colspan="3" class="muted">{{ $t('doorLog.empty') }}</td>
         </tr>
         <tr v-for="event in events" :key="event.id">
           <td>{{ formatTimestamp(event.timestamp) }}</td>
@@ -38,14 +38,17 @@
       </tbody>
     </table>
     <button v-if="page < pages" class="btn-sm load-more" @click="loadMore" :disabled="loading">
-      {{ loading ? 'Loading...' : `Load more (${events.length}/${total})` }}
+      {{ loading ? $t('loading') : $t('load_more_count', { shown: events.length, total }) }}
     </button>
   </div>
 </template>
 
 <script setup>
 import { computed, onMounted, ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 import api from '../api.js'
+
+const { t } = useI18n()
 
 const loading = ref(false)
 const error = ref('')
@@ -57,14 +60,14 @@ const total = ref(0)
 const perPage = 50
 
 const statusText = computed(() => {
-  if (status.value.state === 'open') return 'Open'
-  if (status.value.state === 'closed') return 'Closed'
-  return 'Unknown'
+  if (status.value.state === 'open') return t('doorLog.open')
+  if (status.value.state === 'closed') return t('doorLog.closed')
+  return t('doorLog.unknown')
 })
 
 const sensorText = computed(() => {
   if (status.value.enabled) return `GPIO${status.value.pin_number}`
-  return status.value.error ? `Unavailable: ${status.value.error}` : 'Disabled'
+  return status.value.error ? `${t('sensor_unavailable')}: ${status.value.error}` : t('sensor_disabled')
 })
 
 function formatTimestamp(value) {
