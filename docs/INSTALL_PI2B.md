@@ -79,7 +79,7 @@ Raspberry Pi 2 B is supported as a lightweight deployment target, but it is slow
 
 ## WiFi Note
 
-Raspberry Pi 2 B has no onboard WiFi. If you need WiFi or first-boot hotspot behavior, use a USB WiFi adapter supported by Raspberry Pi OS. Ethernet is simpler and more reliable when available.
+Raspberry Pi 2 B has no onboard WiFi. Use a USB WiFi adapter supported by Raspberry Pi OS, seed the primary WiFi during SD-card creation, and manage additional networks later from Admin -> WiFi Networks. Ethernet is useful for recovery, but the production install does not depend on the old public first-boot WiFi setup page.
 
 If you use a WiFi range extender/repeater, local inbound access such as SSH or `http://<pi-ip>:5000` can fail even when ping works. Some repeaters, including basic TP-Link RE models such as TL-WA850RE, use MAC proxy/translation. Disable NetworkManager WiFi MAC randomization on the Pi before relying on a repeater path.
 

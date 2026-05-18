@@ -1,13 +1,4 @@
-"""
-WiFi setup routes — used during first-boot hotspot onboarding.
-Endpoints:
-    /api/wifi/status: Get current WiFi connection status
-    /api/wifi/scan: Scan for available WiFi networks
-    /api/wifi/connect: Connect to a WiFi network
-    /api/wifi/teardown: Admin can tear down the hotspot
-After initial setup is complete these endpoints are not normally reachable
-(hotspot is torn down and the Pi is on the local network).
-"""
+"""WiFi routes for admin-managed network setup."""
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required
 
@@ -20,13 +11,16 @@ wifi_bp = Blueprint("wifi", __name__)
 
 @wifi_bp.route("/status", methods=["GET"])
 @jwt_required()
+@require_roles("admin")
 def status():
     return jsonify(wifi_service.get_connection_status()), 200
 
 
 @wifi_bp.route("/scan", methods=["GET"])
+@jwt_required()
+@require_roles("admin")
 def scan():
-    """Scan for available WiFi networks. No auth required during hotspot setup."""
+    """Scan for available WiFi networks."""
     try:
         networks = wifi_service.scan_networks()
     except Exception as exc:
@@ -35,11 +29,10 @@ def scan():
 
 
 @wifi_bp.route("/connect", methods=["POST"])
+@jwt_required()
+@require_roles("admin")
 def connect():
-    """
-    Connect to a WiFi network. No auth required during hotspot setup phase.
-    After connecting, the admin should change credentials via the admin dashboard.
-    """
+    """Connect to a WiFi network."""
     data = request.get_json(silent=True) or {}
     ssid = data.get("ssid", "").strip()
     passphrase = data.get("passphrase", "")

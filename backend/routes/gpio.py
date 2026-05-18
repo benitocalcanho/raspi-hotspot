@@ -1,7 +1,4 @@
-"""
-GPIO routes — admin can configure pins; any authenticated user can read/toggle
-pins that are assigned to them (future: per-pin ACL).
-"""
+"""GPIO routes."""
 import threading
 import time
 
@@ -20,6 +17,7 @@ MAX_PULSE_SECONDS = 30
 
 @gpio_bp.route("/pins", methods=["GET"])
 @jwt_required()
+@require_roles("admin")
 def list_pins():
     pins = gpio_service.get_all_pins()
     # Sync live hardware state into DB before returning so the UI is accurate
@@ -57,6 +55,7 @@ def add_pin():
 
 @gpio_bp.route("/pins/<int:pin_number>", methods=["GET"])
 @jwt_required()
+@require_roles("admin")
 def get_pin(pin_number):
     try:
         state = gpio_service.read_pin_state(pin_number)
@@ -67,6 +66,7 @@ def get_pin(pin_number):
 
 @gpio_bp.route("/pins/<int:pin_number>/toggle", methods=["POST"])
 @jwt_required()
+@require_roles("admin")
 def toggle_pin(pin_number):
     from flask import request
     from models.user import User
@@ -104,6 +104,7 @@ def toggle_pin(pin_number):
 
 @gpio_bp.route("/pins/<int:pin_number>/set", methods=["POST"])
 @jwt_required()
+@require_roles("admin")
 def set_pin(pin_number):
     """Explicitly set a pin to ON or OFF. Used for reliable pulse control."""
     data = request.get_json(silent=True) or {}
@@ -123,6 +124,17 @@ def set_pin(pin_number):
 @jwt_required()
 def pulse_pin(pin_number):
     """Turn an output on briefly, then force it off server-side."""
+    from models.user import User
+
+    user_id = int(get_jwt_identity())
+    user = User.query.get(user_id)
+    if not user or not user.is_active:
+        return jsonify({"error": "User is inactive."}), 403
+    if user.role not in ("admin", "user", "cleaner", "guest"):
+        return jsonify({"error": "Insufficient permissions."}), 403
+    if user.role == "guest" and guest_stay_has_ended(user.valid_until, app=current_app):
+        return jsonify({"error": "Your stay has ended."}), 403
+
     data = request.get_json(silent=True) or {}
     requested = data.get("duration", 5)
     try:
@@ -145,7 +157,7 @@ def pulse_pin(pin_number):
                 app.logger.warning("Failed to end GPIO%s pulse: %s", pin_number, exc)
 
     threading.Thread(target=turn_off_later, daemon=True).start()
-    log_event("gpio_pulse_started", user_id=int(get_jwt_identity()), detail={"pin": pin_number, "duration": duration})
+    log_event("gpio_pulse_started", user_id=user_id, detail={"pin": pin_number, "duration": duration})
     return jsonify({**pin.to_dict(), "pulse_duration": duration}), 200
 
 

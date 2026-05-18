@@ -101,28 +101,33 @@ Returns last 100 audit events for the authenticated user.
 
 ## GPIO (`/api/gpio`) — requires `ENABLE_GPIO=true`
 
-### GET `/gpio/pins`
-All configured pins. Requires any authenticated user.
+### GET `/gpio/pins` — admin only
+All configured pins.
 
 ### POST `/gpio/pins` — admin only
 ```json
 { "pin_number": 17, "label": "Front Door", "direction": "output" }
 ```
 
-### GET `/gpio/pins/:pin_number`
-Read current state. Requires any authenticated user.
+### GET `/gpio/pins/:pin_number` — admin only
+Read current state.
 
-### POST `/gpio/pins/:pin_number/toggle`
-Toggle an output pin. Requires any authenticated user.
+### POST `/gpio/pins/:pin_number/toggle` — admin only
+Toggle an output pin.
 
-### POST `/gpio/pins/:pin_number/set`
-Explicitly set an output pin on or off. Requires any authenticated user.
+### POST `/gpio/pins/:pin_number/set` — admin only
+Explicitly set an output pin on or off.
 
 ```json
 { "state": true }
 ```
 
-The guest dashboard uses this endpoint to turn a relay on, wait 5 seconds in the browser, then turn it off.
+### POST `/gpio/pins/:pin_number/pulse`
+Momentarily pulse a relay output, then force it off server-side. This is the narrow door-open endpoint used by the guest dashboard. It requires an active authenticated user; expired guest accounts are rejected.
+
+```json
+{ "duration": 5 }
+```
 
 ### DELETE `/gpio/pins/:pin_number` — admin only
 Remove pin configuration.
@@ -131,17 +136,17 @@ Remove pin configuration.
 
 ## WiFi (`/api/wifi`)
 
-### GET `/wifi/status`
-Current WiFi connection state. Requires any authenticated user.
+### GET `/wifi/status` — admin only
+Current WiFi connection state.
 
-### GET `/wifi/scan`
-List available WiFi networks (sorted by signal strength). No auth required.
+### GET `/wifi/scan` — admin only
+List available WiFi networks (sorted by signal strength).
 
-### POST `/wifi/connect`
+### POST `/wifi/connect` — admin only
 ```json
 { "ssid": "MyNetwork", "passphrase": "wifipassword" }
 ```
-No auth required (used during hotspot setup phase).
+Connect to a WiFi network. Production WiFi management should use the admin WiFi endpoints below.
 
 ### POST `/wifi/hotspot/stop` — admin only
 Tear down the uap0 hotspot.

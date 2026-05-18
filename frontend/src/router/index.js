@@ -6,7 +6,6 @@ import AdminDashboard from '../views/AdminDashboard.vue'
 import UserDashboard from '../views/UserDashboard.vue'
 // import CleanerDashboard from '../views/CleanerDashboard.vue'
 import GuestDashboard from '../views/GuestDashboard.vue'
-import WiFiSetup from '../views/WiFiSetup.vue'
 import GpioControl from '../views/GpioControl.vue'
 
 function homeForRole(role) {
@@ -18,7 +17,6 @@ function homeForRole(role) {
 const routes = [
   { path: '/', redirect: '/login' },
   { path: '/login', component: Login, meta: { public: true } },
-  { path: '/wifi-setup', component: WiFiSetup, meta: { public: true } },
   { path: '/admin', redirect: '/admin/users' },
   {
     path: '/admin/:tab',
@@ -39,7 +37,7 @@ const routes = [
   {
     path: '/gpio',
     component: GpioControl,
-    meta: { requiresAuth: true },
+    meta: { requiresAuth: true, requiresAdmin: true },
   },
 ]
 

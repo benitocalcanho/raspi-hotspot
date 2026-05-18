@@ -235,7 +235,9 @@ Use this path only when Docker is not available or when you intentionally want O
 
 ## Optional Hotspot Script
 
-The hotspot setup is not part of the main deployment path. If you later need a first-boot hotspot flow:
+The hotspot setup is not part of the main deployment path, and the public `/wifi-setup` page is disabled in production. Seed the primary WiFi during SD-card creation, then manage additional networks from Admin -> WiFi Networks.
+
+The legacy hotspot script remains only for manual recovery or custom installs:
 
 ```bash
 sudo bash scripts/02-setup-hotspot.sh
