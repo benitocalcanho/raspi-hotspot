@@ -43,7 +43,7 @@ Before writing the card, open **OS Customisation** and set:
 | SSH | Enable SSH, preferably with your SSH public key; password SSH is acceptable for first install |
 | Raspberry Pi Connect | Enable/link it if Imager offers the option |
 
-Raspberry Pi Connect is useful as the recovery/admin shell path when you are away from the local network. It can replace Tailscale for simple remote SSH-style maintenance. It does **not** replace ngrok for guest/admin web access to the app.
+Raspberry Pi Connect is useful as the recovery/admin shell path when you are away from the local network. It can replace Tailscale for simple remote SSH-style maintenance. It does **not** replace ngrok for guest/admin web access to the app. If you do use Tailscale for production recovery access, disable key expiry for the Pi in the Tailscale admin dashboard after enrollment so it does not require re-authentication later.
 
 If the Pi will connect through a WiFi repeater/range extender, especially with a USB WiFi adapter, disable WiFi MAC randomization after first login. See the WiFi note in [INSTALL_PI2B.md](INSTALL_PI2B.md). Repeaters can use MAC proxying, and local SSH/app access may fail even while ping works unless the WiFi profile is stable.
 

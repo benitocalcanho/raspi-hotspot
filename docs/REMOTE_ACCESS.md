@@ -63,6 +63,10 @@ sudo tailscale up
 tailscale ip -4
 ```
 
+### Disable Key Expiry
+
+After the Pi appears in the Tailscale admin dashboard, open the device details and disable key expiry for this Pi. This is important for production: if key expiry remains enabled, Tailscale may require re-authentication later and remote access can stop until someone logs the Pi back in.
+
 ### Accessing the Admin Dashboard
 
 From **any device** in your Tailscale network:
