@@ -68,6 +68,11 @@ services:
 
     # Optional: expose container logs with a clear name
     container_name: invisible-key
+    logging:
+      driver: json-file
+      options:
+        max-size: "5m"
+        max-file: "3"
 
 # ── Named volumes ─────────────────────────────────────────────────────────────
 # Docker manages these on the host. To inspect:

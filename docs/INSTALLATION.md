@@ -212,6 +212,15 @@ docker compose -f docker-compose.prod.yml -f docker-compose.pi.yml up -d --force
 docker compose -f docker-compose.prod.yml -f docker-compose.pi.yml logs -f app
 ```
 
+The Docker Compose files cap container logs with Docker's `json-file` log driver:
+
+```yaml
+max-size: "5m"
+max-file: "3"
+```
+
+This keeps recent debugging history while limiting the app container log to about 15 MB.
+
 ## Optional Manual Install
 
 The Docker image is the supported path. The old setup scripts are still present for manual/systemd installs, but they are secondary:
