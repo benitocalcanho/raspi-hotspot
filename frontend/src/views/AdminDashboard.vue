@@ -174,13 +174,13 @@ const router = useRouter()
 const adminTabs = [
   { key: 'users', slug: 'users', label: 'Users' },
   { key: 'audit', slug: 'audit', label: 'Audit Log' },
-  { key: 'calendar', slug: 'calendar', label: 'Calendar Sync' },
-  { key: 'settings', slug: 'ngrok', label: 'ngrok Tunnel' },
-  { key: 'email', slug: 'email', label: 'Email' },
-  { key: 'wifi', slug: 'wifi', label: 'WiFi Networks' },
-  { key: 'doors', slug: 'door-images', label: 'Door Images' },
   { key: 'doorlog', slug: 'door-log', label: 'Door Log' },
   { key: 'buttonhistory', slug: 'button-history', label: 'Button History' },
+  { key: 'wifi', slug: 'wifi', label: 'WiFi Networks' },
+  { key: 'settings', slug: 'ngrok', label: 'ngrok Tunnel' },
+  { key: 'calendar', slug: 'calendar', label: 'Calendar Sync' },
+  { key: 'email', slug: 'email', label: 'Email' },
+  { key: 'doors', slug: 'door-images', label: 'Door Images' },
 ]
 const tabBySlug = Object.fromEntries(adminTabs.map((item) => [item.slug, item.key]))
 const slugByTab = Object.fromEntries(adminTabs.map((item) => [item.key, item.slug]))
